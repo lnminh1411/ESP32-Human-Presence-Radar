@@ -1,0 +1,22 @@
+pcb/build/
+
+# KiCad local state / Freerouting intermediates
+.history/
+*.lck
+*.kicad_prl
+*.dsn
+*.ses
+
+# Python
+__pycache__/
+
+# Firmware build output
+firmware/build/
+firmware/managed_components/
+firmware/sdkconfig.old
+
+# Firmware secrets + settings (copy settings_example.h -> settings.h)
+**/settings.h
+**/secrets.h
+.claude/worktrees/
+graphify-out/
