@@ -55,7 +55,7 @@ def board_ref(inst):
 
 
 # atopile 0.2 drops `value`, so part values are keyed off the instance name
-INSTANCE_VALUES = {"c1": "100u 16V", "c2": "100n"}
+INSTANCE_VALUES = {"c1": "100u 25V", "c2": "100n"}
 
 
 def parse_netlist(path):

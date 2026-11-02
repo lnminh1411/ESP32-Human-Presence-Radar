@@ -85,8 +85,8 @@ renders, Gerbers) is in [`../Scripts/Scripts.md`](../Scripts/Scripts.md). In
 | VL53L1X breakout (GY-style, silkscreen "VL53L0/1XV2") | 1x6 female, right-angle | VIN GND SCL SDA GPIO1 XSHUT, from the store listing |
 | 0.9-5V to 5V boost (10.4 x 11 mm, SS14, 150 kHz) | Soldered on a 1x3 male header, face up, pins on its north edge, VIN east | V1 GND Vo (store photo) |
 | JP1 | 1x3 pin header + jumper cap, under the SuperMini | 1 = SuperMini 5V, 2 = radar 5V, 3 = boost out |
-| C1 | 100 uF / 16 V electrolytic, 6.3 x 11 mm, leads bent 90 degrees, lying flat | Radar 5V bulk, square pad = + |
-| C2 | 100 nF ceramic disc, under the SuperMini | Radar 5V, high frequency |
+| C1 | 100 uF / 25 V electrolytic (10 V minimum), 6.3 x 11 mm, leads bent 90 degrees, lying flat. Chosen 2026-11-03: Linh kiện NtShop "Tụ hóa 25V" pack, 100uF/25V x20 | Radar 5V bulk, square pad = + |
+| C2 | 100 nF ceramic disc, marked "104", 50 V, 5 mm lead pitch, under the SuperMini: seat it flush, top below ~9 mm. Chosen 2026-11-03: "Combo 10 Tụ Gốm 104 100nF 50V" | Radar 5V, high frequency |
 
 No resistors. The ToF breakout carries its own I2C and XSHUT pull-ups, the
 radar's UART and OUT are 3.3 V push-pull straight into the ESP32, and no

@@ -37,7 +37,7 @@
 # ---- passives ----------------------------------------------------------------
 
 component BulkCap100u:
-    """100uF / 16V electrolytic on the radar's 5V, next to its socket. The
+    """100uF / 25V electrolytic (10V minimum) on the radar's 5V, next to its socket. The
     board runs from a USB 2.0 port over a long cable and the LD2410 is
     sensitive to supply ripple. Pad 1 (square) = +. Leads bent 90 degrees,
     body lying flat (project footprint, 6.3 x 11 mm body)."""

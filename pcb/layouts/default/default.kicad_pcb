@@ -1983,7 +1983,7 @@
 				)
 			)
 		)
-		(property "Value" "100u 16V"
+		(property "Value" "100u 25V"
 			(at 1.25 -6.5 0)
 			(layer "F.Fab")
 			(uuid "e771fec4-38c1-44eb-9405-1bcff11179fc")
