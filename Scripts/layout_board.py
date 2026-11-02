@@ -24,8 +24,8 @@ Layout, rev 1.1 (board coordinates, mm, origin = top-left, north = top):
     module's underside is 11 mm up. The antenna end stays clear.
   - East strip (needed anyway: the two sensor sockets set the board width):
     C1 lying flat, the radar supply and signal tracks, one mounting hole.
-  - Pin labels are on the bottom silkscreen: the top is covered by the
-    modules.
+  - Pin labels on both sides: the top ones read while assembling, the
+    bottom ones once the modules cover the top.
 """
 import os
 
@@ -46,9 +46,9 @@ TOF_XSHUT_X = MCU_PIN1_X + 3 * 2.54   # ToF XSHUT pad over GPIO13 (side A pin 4)
 RADAR_VCC_X = 26.1             # radar VCC pad (west end of J3)
 ANT_X0 = 19.2                  # antenna keepout starts here (module chip end at 24.0)
 
-JP1_X, JP1_PIN1_Y = 2.4, 17.0         # supply jumper under the module, pins run south
-C2_PAD1 = (6.5, 17.3)                  # 100n, pads run south
-PS1_PIN1 = (16.14, 17.0)               # boost header, pin 1 (VIN) east, pins run west
+JP1_X, JP1_PIN1_Y = 2.4, 17.4         # supply jumper under the module, pins run south
+C2_PAD1 = (6.5, 17.7)                  # 100n, pads run south
+PS1_PIN1 = (16.14, 17.4)               # boost header, pin 1 (VIN) east, pins run west
 C1_PAD1 = (27.0, 29.6)                 # lying 100u, pads east-west, body north
 HOLES = [(3.4, 5.6), (35.5, 30.0)]     # M2.5
 
@@ -189,18 +189,38 @@ def text(s, x, y, hjust=CENTER, size=0.8, angle=0, bottom=False):
     board.Add(t)
 
 
-def labels(ref, names, dy):
+def labels(ref, names, dy, bottom):
     for num, name in enumerate(names, start=1):
         x, y = pad_mm(ref, num)
-        text(name, x, y + dy, bottom=True)
+        text(name, x, y + dy, bottom=bottom)
 
 
-# bottom: one label per pad, on the side away from the neighbouring row
-labels("J1", ["5V", "GND", "3V3", "13", "12", "11", "10", "9", "8"], 1.7)
-labels("J2", ["TX", "RX", "1", "2", "3", "4", "5", "6", "7"], -1.7)
-labels("J4", ["VIN", "GND", "SCL", "SDA", "INT", "XSH"], -1.7)
-labels("J3", ["TX", "RX", "OUT", "GND", "VCC"], -1.7)
-labels("PS1", ["VIN", "GND", "VO"], 1.7)
+J1_NAMES = ["5V", "GND", "3V3", "13", "12", "11", "10", "9", "8"]
+J2_NAMES = ["TX", "RX", "1", "2", "3", "4", "5", "6", "7"]
+J4_NAMES = ["VIN", "GND", "SCL", "SDA", "INT", "XSH"]
+J3_NAMES = ["TX", "RX", "OUT", "GND", "VCC"]
+PS1_NAMES = ["VIN", "GND", "VO"]
+
+# top: one label per pad. SuperMini rows label on their inside, the boost
+# below its pins; the sensor labels sit in the 2 mm band between the sensor
+# pins and the north row.
+labels("J1", J1_NAMES, 2.05, False)
+labels("J2", J2_NAMES, -2.05, False)
+labels("J4", J4_NAMES, 1.85, False)
+labels("J3", J3_NAMES, 1.85, False)
+labels("PS1", PS1_NAMES, 2.1, False)
+for num in (1, 2, 3):
+    x, y = pad_mm("JP1", num)
+    text(str(num), x + 1.6, y, LEFT)
+text("BOOST", PS1_PIN1[0] - 2.54, 23.0)
+text("C2", C2_PAD1[0], C2_PAD1[1] + 7.0)
+
+# bottom: the same labels, sensors on the open north side of their pins
+labels("J1", J1_NAMES, 1.7, True)
+labels("J2", J2_NAMES, -1.7, True)
+labels("J4", J4_NAMES, -1.7, True)
+labels("J3", J3_NAMES, -1.7, True)
+labels("PS1", PS1_NAMES, 1.7, True)
 for num in (1, 2, 3):
     x, y = pad_mm("JP1", num)
     text(str(num), x + 1.6, y, RIGHT, bottom=True)   # mirrored: RIGHT reads east of the pad
@@ -209,16 +229,34 @@ text("USB-C", 1.0, 21.0, angle=90, bottom=True)
 text(f"REV {REVISION}  {DATE}", 33.6, 20.5, angle=90, bottom=True)
 text("JP1 1-2 5V  2-3 BOOST", 35.2, 20.5, angle=90, bottom=True)
 # top: only what stays visible with the modules plugged in
-text("JP1 1-2 5V  2-3 BOOST", 37.4, 19.5, angle=90)
+text("JP1 1-2 5V  2-3 BOOST", 37.4, 21.0, angle=90)
 
 for ref in ("J1", "J2", "J3", "J4", "PS1", "JP1", "C2"):
     fps[ref].Reference().SetVisible(False)
 
-# sensor socket bodies overhang the north edge: move their silk to F.Fab
+# sensor socket bodies overhang the north edge: move all their stock silk to
+# F.Fab, then outline the part of each body that sits on the board (fab body
+# outline + 0.11 mm, north side at the board edge) on the top silk
+SILK_IN = 0.2                  # silk stays this far inside the edge
 for ref in ("J3", "J4"):
+    xs, ys = [], []
     for item in fps[ref].GraphicalItems():
-        if item.GetLayer() == pcbnew.F_SilkS and item.GetBoundingBox().GetTop() < by(0.2):
+        if item.GetLayer() == pcbnew.F_SilkS:        # replaced by the outline below
             item.SetLayer(pcbnew.F_Fab)
+        bb = item.GetBoundingBox()
+        if item.GetLayer() == pcbnew.F_Fab and bb.GetTop() < by(0):   # body lines start past the edge
+            xs += [bb.GetLeft(), bb.GetRight()]
+            ys.append(bb.GetBottom())
+    x0, x1 = min(xs) / 1e6 - OX - 0.11, max(xs) / 1e6 - OX + 0.11
+    y1 = max(ys) / 1e6 - OY + 0.11
+    pts = [(x0, SILK_IN), (x1, SILK_IN), (x1, y1), (x0, y1), (x0, SILK_IN)]
+    for (xa, ya), (xb, yb) in zip(pts, pts[1:]):
+        seg = pcbnew.PCB_SHAPE(board, pcbnew.SHAPE_T_SEGMENT)
+        seg.SetStart(pcbnew.VECTOR2I(bx(xa), by(ya)))
+        seg.SetEnd(pcbnew.VECTOR2I(bx(xb), by(yb)))
+        seg.SetLayer(pcbnew.F_SilkS)
+        seg.SetWidth(MM(0.12))
+        board.Add(seg)
 
 # ---- fit-check 3D models (renders only) --------------------------------------------
 # One pad-less footprint at the board origin carries VRML boxes for the

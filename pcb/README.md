@@ -62,9 +62,11 @@ renders, Gerbers) is in [`../Scripts/Scripts.md`](../Scripts/Scripts.md). In
   ToF socket pins. Short B.Cu jumpers are allowed if a later change needs
   them.
 - Mounting holes (M2.5): north-west corner beside the ToF, south-east corner.
-- Silkscreen: the top carries only the C1 outline and the JP1 setting (the
-  rest is under modules). The bottom carries one label per pad, the title,
-  revision, JP1 setting and a USB-C marker.
+- Silkscreen: both sides carry one label per pad. The top ones read while
+  assembling; the bottom ones stay readable once the modules cover the top.
+  The top also outlines each right-angle socket body (the part on the
+  board, cut at the edge), JP1's pin numbers and setting, C1, C2 and the
+  boost. The bottom adds the title, revision and a USB-C marker.
 
 ![Bottom silkscreen, seen from below](../docs/images/pcb_silkscreen_bottom.png)
 
