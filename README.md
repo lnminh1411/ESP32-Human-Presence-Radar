@@ -1,6 +1,15 @@
 # ESP32 Human Presence Radar
 
-A small desk presence board: ESP32-S3 SuperMini, HLK LD2410C-P mmWave radar and VL53L1X time-of-flight sensor on one PCB. It is the fourth repo of the desk system, after ESP32 PC Controller, PcHwCtl and LocalAIHost (architecture docs in `E:\System Architecture Documentation\ESP32 - Local LLM - PCHwCtl\`).
+## Companion projects
+
+| Project | Role for this board |
+|---|---|
+| [ESP32 PC Control System](https://github.com/lnminh1411/ESP32-PC-Control-System) | Main desk board. Receives radar and ToF readings over ESP-NOW and runs the presence rules (AFK, away, intruder lock, night) |
+| [PC Hardware Control Service](https://github.com/lnminh1411/PC-Hardware-Control-Service) (PcHwCtl) | Windows service. Reads the board over USB and combines it with its webcam presence check |
+
+## About
+
+A small desk presence board: ESP32-S3 SuperMini, HLK LD2410C-P mmWave radar and VL53L1X time-of-flight sensor on one PCB.
 
 The webcam presence check in PcHwCtl fails in the dark (luma 0.1 in low-power mode reads `unknown/dark`) and its depth model can't tell 1.75 m from 2.0 m. Radar and ToF work without light and give a measured distance.
 
