@@ -1,0 +1,218 @@
+# ============================================================
+# ESP32 Human Presence Radar -- presence PCB (rev 1.1)
+# ============================================================
+# Houses: ESP32-S3 SuperMini (2x 1x9 vertical sockets), HLK LD2410C-P
+# 24 GHz radar and a VL53L1X ToF breakout (each on a right-angle socket),
+# an optional 0.9-5V -> 5V boost module with a jumper that picks the
+# radar's supply, plus a 100uF + 100nF pair on the radar's 5V.
+#
+# This file is the source of truth for the netlist. The firmware pin map is
+# to be checked against it by scripts/check_pins.py once firmware exists.
+#
+# Power: the board's only supply is the SuperMini's own USB-C, on a rear
+# panel USB 2.0 port (5V standby with ErP off). The SuperMini's 5V and 3V3
+# pins are outputs here: 5V feeds the radar (directly or through the
+# boost, picked by jumper jp1), 3V3 feeds the ToF. No second source exists
+# on the board, so there is no backfeed path and no diode on 5V.
+#
+# Pin mapping:
+#   - Radar on UART1 through the GPIO matrix: GPIO5 = MCU RX (radar TX),
+#     GPIO6 = MCU TX (radar RX), GPIO7 = radar OUT (high = presence).
+#     256000 baud 8N1. Radar IO is 3.3V even on a 5V supply. Pins 5-7 sit
+#     at the chip end of side B, so the three tracks reach the radar
+#     socket in its own pin order without crossing.
+#   - ToF on I2C: GPIO10 = SCL, GPIO11 = SDA, GPIO12 = GPIO1 (data-ready
+#     interrupt, open drain), GPIO13 = XSHUT (low = sensor off). The
+#     breakout carries the I2C and XSHUT pull-ups. GPIO13..10 sit straight
+#     under the ToF socket's XSHUT..SCL pins, so those four tracks run
+#     straight north.
+#   - Kept free: GPIO3 (strap), GPIO43/44 (UART0, ROM boot log), GPIO19/20
+#     (native USB, not on the headers), GPIO48 (onboard WS2812 + red LED).
+#     Spare: GPIO1, 2, 4, 8, 9.
+#
+# Every component declares pins as `signal <name> ~ pin <N>`, not a bare
+# `pin <name>`: a named pin has no relation to a stock footprint's numbered
+# pads and silently binds to nothing.
+
+# ---- passives ----------------------------------------------------------------
+
+component BulkCap100u:
+    """100uF / 16V electrolytic on the radar's 5V, next to its socket. The
+    board runs from a USB 2.0 port over a long cable and the LD2410 is
+    sensitive to supply ripple. Pad 1 (square) = +. Leads bent 90 degrees,
+    body lying flat (project footprint, 6.3 x 11 mm body)."""
+    signal pos ~ pin 1
+    signal neg ~ pin 2
+    footprint = "PresenceRadar:CP_Radial_D6.3mm_P2.50mm_Lying"
+
+component Cap100n:
+    """100nF ceramic beside the electrolytic, for the radar's high-frequency
+    supply noise."""
+    signal p1 ~ pin 1
+    signal p2 ~ pin 2
+    footprint = "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm"
+
+# ---- module sockets ------------------------------------------------------------
+# Female sockets; every module plugs in on its own male DuPont pins.
+
+component Socket1x9:
+    """One SuperMini header row, vertical. Pad 1 is the USB-C end."""
+    signal pin1 ~ pin 1
+    signal pin2 ~ pin 2
+    signal pin3 ~ pin 3
+    signal pin4 ~ pin 4
+    signal pin5 ~ pin 5
+    signal pin6 ~ pin 6
+    signal pin7 ~ pin 7
+    signal pin8 ~ pin 8
+    signal pin9 ~ pin 9
+    footprint = "Connector_PinSocket_2.54mm:PinSocket_1x09_P2.54mm_Vertical"
+
+module SuperMiniSocket:
+    """ESP32-S3 SuperMini, 23.5 x 18 mm, two 1x9 rows. Order from the user's
+    board, USB-C end to chip end:
+      side A: 5V GND 3V3 13 12 11 10 9 8
+      side B: TX(43) RX(44) 1 2 3 4 5 6 7
+    Row spacing measured on the user's board: 15.24 mm (0.6 in) pin centre
+    to pin centre; the gap between the two plastic spacers is 12.7 mm
+    (0.5 in), which agrees (15.24 - one 2.54 mm spacer width). The layout
+    step places the two sockets 15.24 mm apart. The 20 castellated pads on its underside
+    (GPIO14-18, 21, 33-42, 45-48) are not used."""
+    a = new Socket1x9
+    b = new Socket1x9
+
+    signal vout_5v ~ a.pin1
+    signal gnd     ~ a.pin2
+    signal vout_3v3 ~ a.pin3
+    signal gpio13  ~ a.pin4
+    signal gpio12  ~ a.pin5
+    signal gpio11  ~ a.pin6
+    signal gpio10  ~ a.pin7
+    signal gpio9   ~ a.pin8
+    signal gpio8   ~ a.pin9
+
+    signal gpio43  ~ b.pin1  # TX, UART0
+    signal gpio44  ~ b.pin2  # RX, UART0
+    signal gpio1   ~ b.pin3
+    signal gpio2   ~ b.pin4
+    signal gpio3   ~ b.pin5  # strapping pin
+    signal gpio4   ~ b.pin6
+    signal gpio5   ~ b.pin7
+    signal gpio6   ~ b.pin8
+    signal gpio7   ~ b.pin9
+
+component RadarSocket:
+    """HLK LD2410C-P, 5 pins at 2.54 mm, right-angle socket. Pin order from
+    Hi-Link's LD2410C manual (table 1): TX RX OUT GND VCC. The plain LD2410
+    (no C) uses a different order, OUT first. VCC 5-12V, 5V advised, at
+    least 200 mA available."""
+    signal tx  ~ pin 1
+    signal rx  ~ pin 2
+    signal out ~ pin 3
+    signal gnd ~ pin 4
+    signal vcc ~ pin 5
+    footprint = "Connector_PinSocket_2.54mm:PinSocket_1x05_P2.54mm_Horizontal"
+
+component BoostSocket:
+    """0.9-5V -> 5V mini boost (10.4 x 11 mm, 22uH coil, SS14 output
+    diode, 150 kHz, up to 380-480 mA out above 3V in). Soldered under the
+    SuperMini on a 1x3 male header: long ends down through this board,
+    module on the short ends, about 7.5 mm tall in all. A socket would put
+    it at the SuperMini's own height. Pin order from the module's
+    silkscreen: V1 (in), GND (middle, unlabelled), Vo (out); the store
+    photo shows GND in the middle.
+    Fed from the SuperMini 5V pin: if that pin sits under 5V (a diode on
+    the SuperMini, cable drop) the boost lifts it to 5.0V; if it is already
+    at or above 5V the output is the input minus the SS14 drop (~4.7V), so
+    the boost only helps in the first case."""
+    signal vin  ~ pin 1
+    signal gnd  ~ pin 2
+    signal vout ~ pin 3
+    footprint = "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical"
+
+component SupplyJumper:
+    """1x3 pin header + jumper cap, picks the radar's 5V source: cap on 1-2
+    = SuperMini 5V direct, cap on 2-3 = boost output. The boost output only
+    reaches pin 3, so the boost can stay plugged in either way and never
+    fights the USB 5V rail."""
+    signal direct ~ pin 1
+    signal radar  ~ pin 2
+    signal boost  ~ pin 3
+    footprint = "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical"
+
+component TofSocket:
+    """VL53L1X breakout, right-angle socket. GY-style 6-pin board,
+    silkscreen "VL53L0/1XV2" (VL53L1X variant). Pin order VIN GND SCL SDA
+    GPIO1 XSHUT, confirmed from the store listing; still to check against
+    the silkscreen on the real part."""
+    signal vin   ~ pin 1
+    signal gnd   ~ pin 2
+    signal scl   ~ pin 3
+    signal sda   ~ pin 4
+    signal gpio1 ~ pin 5
+    signal xshut ~ pin 6
+    footprint = "Connector_PinSocket_2.54mm:PinSocket_1x06_P2.54mm_Horizontal"
+
+# ---- top level -------------------------------------------------------------
+
+module Main:
+    mcu = new SuperMiniSocket
+    radar = new RadarSocket
+    tof = new TofSocket
+    boost = new BoostSocket
+    jp1 = new SupplyJumper
+    c1 = new BulkCap100u  # radar 5V bulk
+    c2 = new Cap100n      # radar 5V HF
+
+    # ---- named nets ----
+    # Without these, atopile names each net after a random member pin.
+    signal gnd
+    signal v5         # SuperMini 5V pin
+    signal boost_out
+    signal radar_5v   # radar VCC, after the source jumper
+    signal v3v3
+    signal radar_tx   # radar TX -> MCU RX
+    signal radar_rx   # MCU TX -> radar RX
+    signal radar_out
+    signal tof_scl
+    signal tof_sda
+    signal tof_int
+    signal tof_xshut
+    gnd ~ mcu.gnd
+    v5 ~ mcu.vout_5v
+    boost_out ~ boost.vout
+    radar_5v ~ radar.vcc
+    v3v3 ~ mcu.vout_3v3
+    radar_tx ~ radar.tx
+    radar_rx ~ radar.rx
+    radar_out ~ radar.out
+    tof_scl ~ tof.scl
+    tof_sda ~ tof.sda
+    tof_int ~ tof.gpio1
+    tof_xshut ~ tof.xshut
+
+    # ---- power ----
+    # radar supply: SuperMini 5V -> (jumper 1-2 direct | boost -> jumper 2-3)
+    mcu.vout_5v ~ boost.vin
+    mcu.gnd ~ boost.gnd
+    mcu.vout_5v ~ jp1.direct
+    boost.vout ~ jp1.boost
+    jp1.radar ~ radar.vcc
+    mcu.gnd ~ radar.gnd
+    jp1.radar ~ c1.pos
+    mcu.gnd ~ c1.neg
+    jp1.radar ~ c2.p1
+    mcu.gnd ~ c2.p2
+    mcu.vout_3v3 ~ tof.vin
+    mcu.gnd ~ tof.gnd
+
+    # ---- radar (UART1 via GPIO matrix) ----
+    mcu.gpio5 ~ radar.tx
+    mcu.gpio6 ~ radar.rx
+    mcu.gpio7 ~ radar.out
+
+    # ---- ToF (I2C) ----
+    mcu.gpio10 ~ tof.scl
+    mcu.gpio11 ~ tof.sda
+    mcu.gpio12 ~ tof.gpio1
+    mcu.gpio13 ~ tof.xshut
