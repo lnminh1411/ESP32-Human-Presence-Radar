@@ -7,6 +7,7 @@ Decisions made with the user on 2026-11-02, before any code or PCB. Each section
 - MCU: spare ESP32-S3 SuperMini, native USB on GPIO19/20. Its RST (EN) button broke while the headers were soldered on (2026-11-02). To reset, unplug and replug USB. For download mode, hold BOOT (GPIO0) while plugging in, or let esptool reset it over USB-Serial-JTAG. Once the firmware moves USB to TinyUSB, it needs the main board's software path to the ROM downloader (DTR/RTS or 1200 baud), because no button can do it.
 - Radar: HLK LD2410C-P, 24 GHz FMCW. Reports moving and stationary targets with per-gate energy. The beam is about ±60° wide.
 - ToF: VL53L1X, up to 4 m in long mode in the dark. Its field of view is a 27° cone, so it must point straight at the target.
+- No thermal array (dropped 2026-11-02): an AMG8833 8x8 module was considered as a third presence signal, out to about 2 m. The 26k VND listing turned out to be a pricing error; the real price is about 697k VND. If it comes back, it fits on the ToF's I2C bus (0x68/0x69; ToF at 0x29), but the north edge has no room left, so the board would have to grow.
 - Own small PCB.
 
 ## Links
@@ -29,14 +30,12 @@ Constraints:
 - In ROM download mode both boards show up as `0x303A:0x1001`. Flashing tools must tell them apart by serial number (eFuse MAC).
 - With the PC off, the USB port must keep 5 V standby power. That needs BIOS ErP turned off (still pending on the user's PC). Without it the board loses power exactly when ESP-NOW matters: at night and while away.
 
-### Dedicated presence camera
+### No dedicated camera
 
-Decided 2026-11-02. PcHwCtl's presence check opens the PC webcam, which blocks other apps from using it. A second camera on this board takes over the presence check and leaves the webcam free.
-- Camera: a 2 MP USB (UVC) module, GC2154 sensor, 72° view, manual focus, IR-sensitive (no IR light included). Its stock cable is a 40 cm lead from a 4-pin 2.0 mm connector to USB-A. Windows sees it as a second camera; PcHwCtl picks it with `presence.camera` (DirectShow index). The ESP32 never reads it.
-- Not an SPI or DVP camera: a DVP camera needs 12 or more GPIOs and the SuperMini has 8 free; an SPI camera fits, but this module needs no GPIO at all.
-- Two cables from the PC, each on its own backpanel USB 2.0 port: the camera on its stock USB-A cable, the board on its USB-C as before. Cheapest option; no PCB change, rev 1.2 stands. Each device gets the port's full 500 mA (board about 200 mA, camera 120 to 200 mA).
-- Ruled out: a passive Y-splitter cable (USB data is point-to-point, so one device never enumerates); a hub, on the PCB or as a module (extra cost; on the PCB the SuperMini would still need a USB-C pigtail, since its GPIO19/20, USB D-/D+, reach only its USB-C); a USB-to-UART chip on GPIO43/44 (PcHwCtl would switch from WinUSB to a COM port, and flashing would need EN, which isn't on the headers).
-- PcHwCtl picks the camera by DirectShow index, which can change when cameras are replugged, and then the check would open the main webcam again. Picking it by name is a follow-up in that repo.
+Considered and dropped on 2026-11-02. The idea was a second USB camera (2 MP UVC module) to take over PcHwCtl's presence check, so the check would stop opening the PC webcam and blocking other apps.
+- Dropped because radar and ToF take over routine presence. The webcam and the NPU stay for face recognition (intruder protection) at login or service startup, and for normal webcam use such as Discord.
+- Findings, in case it comes back: a parallel (DVP) camera needs 12 or more GPIOs and the SuperMini has 8 free. An SPI camera (4 GPIOs plus the shared I2C) fits. A USB camera needs no GPIO, but the ESP32 can't read it (one full-speed USB port, already the link to PcHwCtl), so it runs on its own PC cable. A passive Y-splitter cable can't share one port (USB data is point-to-point), and a hub on this PCB would still need a USB-C pigtail, because the SuperMini's GPIO19/20 (USB D-/D+) reach only its USB-C.
+- Possible later: an IR camera for presence in the dark. That needs a sensor with no IR-cut filter plus an 850 nm IR LED.
 
 ## Mounting
 
@@ -57,5 +56,4 @@ Other mounting rules:
 - Bracket angle, measured on site.
 - ESP-NOW frame format, stat key names on the main board.
 - USB transport to PcHwCtl (WinUSB vendor bulk with the GUID above is the plan) and its verbs.
-- Camera mounting on the shelf next to the board, and its cable run (stock lead is 40 cm; may need a USB extension).
-- Doc folder and slug rename for a fourth repo in `E:\System Architecture Documentation\`, plus step 6 of the user's global CLAUDE.md.
+- Step 6 of the user's global CLAUDE.md still names the old architecture folder and three repos. The user chose to leave it unchanged for now (2026-11-02). The docs themselves moved to `E:\System Architecture Documentation\ESP32 PC Control System\` with this repo as repo D.
