@@ -1,4 +1,4 @@
-# Presence PCB (atopile + KiCad), rev 1.1
+# Presence PCB (atopile + KiCad), rev 1.2
 
 [`main.ato`](main.ato) is the single-file atopile project and the source of
 truth for the netlist. Every part is defined locally with explicit pins; all
@@ -7,9 +7,9 @@ The KiCad board is `layouts/default/default.kicad_pcb`, built, placed and
 routed by the scripts in [`../Scripts/`](../Scripts/Scripts.md), the same
 chain as the ESP32 PC Controller carrier.
 
-![Rev 1.1: top silkscreen over F.Cu](../docs/images/pcb_silkscreen_top.png)
+![Rev 1.2: top silkscreen over F.Cu](../docs/images/pcb_silkscreen_top.png)
 
-![Rev 1.1 with fit models of the plugged-in modules](../docs/images/pcb_3d.png)
+![Rev 1.2 with fit models of the plugged-in modules](../docs/images/pcb_3d.png)
 
 ## Build
 
@@ -30,21 +30,25 @@ renders, Gerbers) is in [`../Scripts/Scripts.md`](../Scripts/Scripts.md). In
   edge, power parts in an east strip. Gerbers built, not ordered.
 - 1.1 (2026-11-02): 38.5 x 33.5 mm. SuperMini turned sideways; boost, C2
   and JP1 under it; C1 lying flat; pin labels moved to the bottom.
+- 1.2 (2026-11-02): ToF socket moved into the north-west corner (both
+  sensors now at the edges), north-west mounting hole moved between the
+  sensors, sensor sockets keep their stock silk (a line per pin, pin-1
+  hatch) cut at the board edge, pin labels on both sides.
 
 ## Board
 
 - 38.5 x 33.5 mm, 1.6 mm, 2 layers, every part through-hole. DRC 0/0.
-- North edge: ToF (J4, north-west) and radar (J3, north-east) on
-  right-angle sockets whose openings sit 1 mm past the edge. Each module
+- North edge: ToF (J4) in the north-west corner and radar (J3) in the
+  north-east corner, on right-angle sockets whose openings sit 1 mm past the edge. Each module
   stands at 90 degrees to the board and faces north, away from it, so the
   board's north edge points at the chair.
 - SuperMini on J1 (north row, side A: 5V GND 3V3 13..8) and J2 (south row,
   side B: TX RX 1..7), rows 15.24 mm apart, **USB-C pointing west**, chip
   and antenna end east. Face up with the USB-C to the right, the 5V row is
   the near row (user-checked 2026-11-02). With the USB-C pointing left
-  instead, that row sits next to the sensors and GPIO13..10 line up under
-  the ToF's XSHUT..SCL pins. The other way round, every ToF track would
-  cross.
+  instead, that row sits next to the sensors and GPIO13..10 reach the
+  ToF's XSHUT..SCL pins in order. The other way round, every ToF track
+  would cross.
 - Under the SuperMini, between its rows: JP1 at the USB-C end, then C2,
   then the boost (PS1) soldered on a 1x3 male header (module about 7.5 mm
   tall; the SuperMini's underside sits 11 mm up on its sockets). The last
@@ -61,11 +65,13 @@ renders, Gerbers) is in [`../Scripts/Scripts.md`](../Scripts/Scripts.md). In
   header pads; `v3v3` feeds only the ToF and is 0.2 mm, running behind the
   ToF socket pins. Short B.Cu jumpers are allowed if a later change needs
   them.
-- Mounting holes (M2.5): north-west corner beside the ToF, south-east corner.
+- Mounting holes (M2.5): on the north edge between the two sensors, and the
+  south-east corner.
 - Silkscreen: both sides carry one label per pad. The top ones read while
   assembling; the bottom ones stay readable once the modules cover the top.
-  The top also outlines each right-angle socket body (the part on the
-  board, cut at the edge), JP1's pin numbers and setting, C1, C2 and the
+  The right-angle sensor sockets keep their stock silk (body outline, a
+  line per pin, hatched pin 1), cut 0.2 mm inside the board edge. The top
+  also carries JP1's pin numbers and setting, C1, C2 and the
   boost. The bottom adds the title, revision and a USB-C marker.
 
 ![Bottom silkscreen, seen from below](../docs/images/pcb_silkscreen_bottom.png)

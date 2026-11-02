@@ -9,5 +9,5 @@ Transform { translation 5.7480 -7.9921 2.1654 children [ Shape { appearance Appe
 Transform { translation 4.9606 -9.8425 1.8110 children [ Shape { appearance Appearance { material Material { diffuseColor 0.1 0.1 0.1 transparency 0.0 } } geometry Box { size 1.9685 0.8661 0.8661 } } ] }
 Transform { translation 12.2756 0.8858 0.6102 children [ Shape { appearance Appearance { material Material { diffuseColor 0.1 0.1 0.1 transparency 0.0 } } geometry Box { size 5.0000 0.9843 0.9843 } } ] }
 Transform { translation 12.2756 1.5748 4.3307 children [ Shape { appearance Appearance { material Material { diffuseColor 0.1 0.35 0.15 transparency 0.15 } } geometry Box { size 6.2992 0.3937 8.6614 } } ] }
-Transform { translation 6.3268 0.8858 0.6102 children [ Shape { appearance Appearance { material Material { diffuseColor 0.1 0.1 0.1 transparency 0.0 } } geometry Box { size 6.0000 0.9843 0.9843 } } ] }
-Transform { translation 6.3268 1.5748 2.1654 children [ Shape { appearance Appearance { material Material { diffuseColor 0.4 0.1 0.5 transparency 0.15 } } geometry Box { size 6.6929 0.3937 4.3307 } } ] }
+Transform { translation 3.2480 0.8858 0.6102 children [ Shape { appearance Appearance { material Material { diffuseColor 0.1 0.1 0.1 transparency 0.0 } } geometry Box { size 6.0000 0.9843 0.9843 } } ] }
+Transform { translation 3.2480 1.5748 2.1654 children [ Shape { appearance Appearance { material Material { diffuseColor 0.4 0.1 0.5 transparency 0.15 } } geometry Box { size 6.6929 0.3937 4.3307 } } ] }

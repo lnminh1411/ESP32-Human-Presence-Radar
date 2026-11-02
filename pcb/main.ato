@@ -1,5 +1,5 @@
 # ============================================================
-# ESP32 Human Presence Radar -- presence PCB (rev 1.1)
+# ESP32 Human Presence Radar -- presence PCB (rev 1.2)
 # ============================================================
 # Houses: ESP32-S3 SuperMini (2x 1x9 vertical sockets), HLK LD2410C-P
 # 24 GHz radar and a VL53L1X ToF breakout (each on a right-angle socket),

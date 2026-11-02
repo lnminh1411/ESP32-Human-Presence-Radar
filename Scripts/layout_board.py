@@ -11,14 +11,15 @@ Not idempotent: re-running it on its own output corrupts live pcbnew SWIG
 references. Rebuild from make_blank_pcb.py after any change here. Never
 fp.Remove() footprint graphics; move them to another layer instead.
 
-Layout, rev 1.1 (board coordinates, mm, origin = top-left, north = top):
-  - North edge: ToF (J4, north-west) and radar (J3, north-east) on
-    right-angle sockets whose openings sit 1 mm past the edge, so each
-    module stands at 90 degrees to the board and faces north.
+Layout, rev 1.2 (board coordinates, mm, origin = top-left, north = top):
+  - North edge: ToF (J4) in the north-west corner and radar (J3) in the
+    north-east corner, on right-angle sockets whose openings sit 1 mm past
+    the edge, so each module stands at 90 degrees to the board and faces
+    north. A mounting hole sits between them.
   - SuperMini turned sideways: rows run east-west, USB-C at the west edge,
     chip/antenna end east. Face up with the USB-C pointing west, its 5V row
     (side A: 5V GND 3V3 13..8) is the north row (user-checked 2026-11-02),
-    so GPIO13..10 sit straight under the ToF's XSHUT..SCL pins.
+    so GPIO13..10 reach the ToF's XSHUT..SCL pins in order.
   - Under the SuperMini, between its rows: JP1 (radar supply jumper), C2 and
     the boost (PS1), soldered on a male header about 7.5 mm tall; the
     module's underside is 11 mm up. The antenna end stays clear.
@@ -42,7 +43,7 @@ ROW_N, ROW_S = 13.3, 13.3 + 15.24   # SuperMini rows (15.24 mm measured)
 MCU_USB_X = 0.5                # module's USB-C end
 MCU_PIN1_X = MCU_USB_X + 1.6   # pin 1 (5V / TX); pins run east at 2.54
 MCU_LEN, MCU_WIDTH = 23.5, 18.0
-TOF_XSHUT_X = MCU_PIN1_X + 3 * 2.54   # ToF XSHUT pad over GPIO13 (side A pin 4)
+TOF_XSHUT_X = 1.9              # ToF XSHUT pad: socket courtyard 0.1 mm in from the west edge
 RADAR_VCC_X = 26.1             # radar VCC pad (west end of J3)
 ANT_X0 = 19.2                  # antenna keepout starts here (module chip end at 24.0)
 
@@ -50,7 +51,7 @@ JP1_X, JP1_PIN1_Y = 2.4, 17.4         # supply jumper under the module, pins run
 C2_PAD1 = (6.5, 17.7)                  # 100n, pads run south
 PS1_PIN1 = (16.14, 17.4)               # boost header, pin 1 (VIN) east, pins run west
 C1_PAD1 = (27.0, 29.6)                 # lying 100u, pads east-west, body north
-HOLES = [(3.4, 5.6), (35.5, 30.0)]     # M2.5
+HOLES = [(20.35, 5.5), (35.5, 30.0)]   # M2.5: between the sensors, south-east corner
 
 BOOST_W, BOOST_D = 11.0, 10.4          # module, along the pins / away from them
 BOOST_PIN_EDGE = 1.3                   # pin row centre to the module's pin edge
@@ -234,29 +235,29 @@ text("JP1 1-2 5V  2-3 BOOST", 37.4, 21.0, angle=90)
 for ref in ("J1", "J2", "J3", "J4", "PS1", "JP1", "C2"):
     fps[ref].Reference().SetVisible(False)
 
-# sensor socket bodies overhang the north edge: move all their stock silk to
-# F.Fab, then outline the part of each body that sits on the board (fab body
-# outline + 0.11 mm, north side at the board edge) on the top silk
+# sensor socket bodies overhang the north edge: keep the stock silk (body
+# outline, one line per pin, pin-1 hatch) and clip it at the board edge, as
+# on the carrier's display sockets. Lines wholly past the edge go to F.Fab;
+# lines crossing it are cut back to it.
 SILK_IN = 0.2                  # silk stays this far inside the edge
+cut = by(SILK_IN)
 for ref in ("J3", "J4"):
-    xs, ys = [], []
     for item in fps[ref].GraphicalItems():
-        if item.GetLayer() == pcbnew.F_SilkS:        # replaced by the outline below
+        if item.GetLayer() != pcbnew.F_SilkS or item.GetClass() != "PCB_SHAPE":
+            continue
+        s, e = item.GetStart(), item.GetEnd()
+        if s.y >= cut and e.y >= cut:
+            continue
+        if s.y < cut and e.y < cut:
             item.SetLayer(pcbnew.F_Fab)
-        bb = item.GetBoundingBox()
-        if item.GetLayer() == pcbnew.F_Fab and bb.GetTop() < by(0):   # body lines start past the edge
-            xs += [bb.GetLeft(), bb.GetRight()]
-            ys.append(bb.GetBottom())
-    x0, x1 = min(xs) / 1e6 - OX - 0.11, max(xs) / 1e6 - OX + 0.11
-    y1 = max(ys) / 1e6 - OY + 0.11
-    pts = [(x0, SILK_IN), (x1, SILK_IN), (x1, y1), (x0, y1), (x0, SILK_IN)]
-    for (xa, ya), (xb, yb) in zip(pts, pts[1:]):
-        seg = pcbnew.PCB_SHAPE(board, pcbnew.SHAPE_T_SEGMENT)
-        seg.SetStart(pcbnew.VECTOR2I(bx(xa), by(ya)))
-        seg.SetEnd(pcbnew.VECTOR2I(bx(xb), by(yb)))
-        seg.SetLayer(pcbnew.F_SilkS)
-        seg.SetWidth(MM(0.12))
-        board.Add(seg)
+            continue
+        inside, outside = (s, e) if s.y >= cut else (e, s)
+        k = (cut - inside.y) / (outside.y - inside.y)
+        clipped = pcbnew.VECTOR2I(int(inside.x + (outside.x - inside.x) * k), cut)
+        if s.y < cut:
+            item.SetStart(clipped)
+        else:
+            item.SetEnd(clipped)
 
 # ---- fit-check 3D models (renders only) --------------------------------------------
 # One pad-less footprint at the board origin carries VRML boxes for the
