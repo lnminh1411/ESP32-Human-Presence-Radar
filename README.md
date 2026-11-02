@@ -2,9 +2,11 @@
 
 ## Companion projects
 
+This board is an add-on to the ESP32 PC Control System, the main project.
+
 | Project | Role for this board |
 |---|---|
-| [ESP32 PC Control System](https://github.com/lnminh1411/ESP32-PC-Control-System) | Main desk board. Receives radar and ToF readings over ESP-NOW and runs the presence rules (AFK, away, intruder lock, night) |
+| [ESP32 PC Control System](https://github.com/lnminh1411/ESP32-PC-Control-System) (main project) | Main desk board. Receives radar and ToF readings over ESP-NOW and runs the presence rules (AFK, away, intruder lock, night) |
 | [PC Hardware Control Service](https://github.com/lnminh1411/PC-Hardware-Control-Service) (PcHwCtl) | Windows service. Reads the board over USB and combines it with its webcam presence check |
 
 ## About
