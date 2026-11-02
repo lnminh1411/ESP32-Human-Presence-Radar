@@ -29,6 +29,15 @@ Constraints:
 - In ROM download mode both boards show up as `0x303A:0x1001`. Flashing tools must tell them apart by serial number (eFuse MAC).
 - With the PC off, the USB port must keep 5 V standby power. That needs BIOS ErP turned off (still pending on the user's PC). Without it the board loses power exactly when ESP-NOW matters: at night and while away.
 
+### Dedicated presence camera
+
+Decided 2026-11-02. PcHwCtl's presence check opens the PC webcam, which blocks other apps from using it. A second camera on this board takes over the presence check and leaves the webcam free.
+- Camera: a 2 MP USB (UVC) module, GC2154 sensor, 72° view, manual focus, IR-sensitive (no IR light included). Its stock cable is a 40 cm lead from a 4-pin 2.0 mm connector to USB-A. Windows sees it as a second camera; PcHwCtl picks it with `presence.camera` (DirectShow index). The ESP32 never reads it.
+- Not an SPI or DVP camera: a DVP camera needs 12 or more GPIOs and the SuperMini has 8 free; an SPI camera fits, but this module needs no GPIO at all.
+- Two cables from the PC, each on its own backpanel USB 2.0 port: the camera on its stock USB-A cable, the board on its USB-C as before. Cheapest option; no PCB change, rev 1.2 stands. Each device gets the port's full 500 mA (board about 200 mA, camera 120 to 200 mA).
+- Ruled out: a passive Y-splitter cable (USB data is point-to-point, so one device never enumerates); a hub, on the PCB or as a module (extra cost; on the PCB the SuperMini would still need a USB-C pigtail, since its GPIO19/20, USB D-/D+, reach only its USB-C); a USB-to-UART chip on GPIO43/44 (PcHwCtl would switch from WinUSB to a COM port, and flashing would need EN, which isn't on the headers).
+- PcHwCtl picks the camera by DirectShow index, which can change when cameras are replugged, and then the check would open the main webcam again. Picking it by name is a follow-up in that repo.
+
 ## Mounting
 
 Position: the front face of the shelf above the desk, centred over the 27-inch monitor, higher and further forward than the first idea (directly under the shelf edge). The user moved it there to keep the PC tower fans, at the left end of the desk, out of the radar beam. The LD2410 reads spinning fans as motion.
@@ -48,4 +57,5 @@ Other mounting rules:
 - Bracket angle, measured on site.
 - ESP-NOW frame format, stat key names on the main board.
 - USB transport to PcHwCtl (WinUSB vendor bulk with the GUID above is the plan) and its verbs.
+- Camera mounting on the shelf next to the board, and its cable run (stock lead is 40 cm; may need a USB extension).
 - Doc folder and slug rename for a fourth repo in `E:\System Architecture Documentation\`, plus step 6 of the user's global CLAUDE.md.
