@@ -1,5 +1,5 @@
 # ============================================================
-# ESP32 Human Presence Radar -- presence PCBs (rev 2.0)
+# ESP32 Human Presence Radar -- presence PCBs (rev 2.1)
 # ============================================================
 # Two boards joined by a 12-pin 0.5 mm FFC:
 #   - Base (module Main, build "default"): fixed on the pan-tilt base.
@@ -8,7 +8,8 @@
 #     beeper driven through a PC817.
 #   - Sensor head (module Head, build "head"): rides on the two servos.
 #     HLK LD2410C-P radar, SR602 PIR and VL53L1X ToF on right-angle sockets
-#     at the north edge, all facing north, with the radar's 100uF + 100nF.
+#     at the north edge, all facing north, with the radar's 100uF + 100nF,
+#     and a red indicator LED behind the PIR, driven by the firmware.
 # Only the light FFC moves with the head, so the servos never pull on a
 # USB cable.
 #
@@ -26,16 +27,16 @@
 #     current stays off the sensors' supply.
 #
 # FFC (base pin / head pin / net). A same-side (type A) cable between two
-# bottom-contact connectors maps base pin k to head pin 13-k. GND sits on
-# both ends and the two supplies on pins 2 and 11, so a cable of the other
-# type (k to k) lands GND on GND, swaps 5V and 3V3 and lands signals on
-# signals: nothing works, nothing gets 5V on a signal pin.
+# bottom-contact connectors maps base pin k to head pin 13-k. Since rev
+# 2.1 one end conductor carries the LED instead of a second GND, so a cable
+# of the other type (k to k) is no longer harmless: it swaps 5V and 3V3 and
+# grounds the head only through GPIO5. Check the cable with a meter first.
 #    1 / 12  gnd          7 / 6   tof_xshut
 #    2 / 11  v5           8 / 5   tof_int
 #    3 / 10  radar_out    9 / 4   tof_sda
 #    4 / 9   radar_rx    10 / 3   tof_scl
 #    5 / 8   radar_tx    11 / 2   v3v3
-#    6 / 7   pir_out     12 / 1   gnd
+#    6 / 7   pir_out     12 / 1   led
 # The order follows the sensors west to east on the head (radar, PIR,
 # ToF), so both boards route on F.Cu.
 #
@@ -49,9 +50,10 @@
 #     breakout carries the I2C and XSHUT pull-ups.
 #   - Servos: GPIO1 = pan, GPIO2 = tilt (50 Hz LEDC, 500-2400 us).
 #   - Beeper: GPIO4 drives the PC817 LED (2-4 kHz square wave = tone).
+#   - Head LED: GPIO5, high = on (red LED + 270R on the head, ~5 mA).
 #   - Kept free: GPIO3 (strap), GPIO43/44 (UART0, ROM boot log), GPIO19/20
 #     (native USB, not on the headers), GPIO48 (onboard WS2812 + red LED).
-#     Spare: GPIO5.
+#     No spare GPIO left on the headers.
 #
 # Every component declares pins as `signal <name> ~ pin <N>`, not a bare
 # `pin <name>`: a named pin has no relation to a stock footprint's numbered
@@ -102,6 +104,13 @@ component Diode1N4007:
     signal k ~ pin 1
     signal a ~ pin 2
     footprint = "Diode_THT:D_DO-41_SOD81_P7.62mm_Horizontal"
+
+component LedRed:
+    """Red indicator LED, 2.54 mm leads (3 or 5 mm body). Pad 1 = cathode
+    (flat side, short lead)."""
+    signal k ~ pin 1
+    signal a ~ pin 2
+    footprint = "LED_THT:LED_D3.0mm"
 
 component PC817:
     """PC817 optocoupler, DIP-4: 1 = LED anode, 2 = LED cathode, 3 =
@@ -293,6 +302,7 @@ module Main:
     signal tof_xshut
     signal servo_pan
     signal servo_tilt
+    signal led        # GPIO5 -> FFC -> head LED
     signal beep       # GPIO4 -> 270R
     signal beep_led   # 270R -> opto LED
     signal spk_drive  # speaker pin 4
@@ -311,6 +321,7 @@ module Main:
     tof_xshut ~ mcu.gpio9
     servo_pan ~ mcu.gpio1
     servo_tilt ~ mcu.gpio2
+    led ~ mcu.gpio5
     beep ~ mcu.gpio4
     beep_led ~ opto.anode
     spk_drive ~ spk.drive
@@ -328,7 +339,7 @@ module Main:
     tof_sda ~ ffc.p9
     tof_scl ~ ffc.p10
     v3v3 ~ ffc.p11
-    gnd ~ ffc.p12
+    led ~ ffc.p12
 
     # ---- power: USB 2 (servos, beeper) ----
     gnd ~ servo_in.gnd
@@ -374,6 +385,8 @@ module Head:
     ffc = new Ffc12
     c1 = new BulkCap100u  # radar 5V bulk
     c2 = new Cap100n      # radar 5V HF
+    led1 = new LedRed     # behind the PIR
+    r_led = new Resistor  # 270R, LED series
 
     signal gnd
     signal v5
@@ -386,6 +399,8 @@ module Head:
     signal tof_sda
     signal tof_int
     signal tof_xshut
+    signal led        # from GPIO5
+    signal led_a      # 270R -> LED anode
 
     # ---- FFC from the base (head pin = 13 - base pin) ----
     gnd ~ ffc.p12
@@ -399,7 +414,13 @@ module Head:
     tof_sda ~ ffc.p4
     tof_scl ~ ffc.p3
     v3v3 ~ ffc.p2
-    gnd ~ ffc.p1
+    led ~ ffc.p1
+
+    # ---- LED: GPIO5 -> 270R -> red LED -> GND, (3.3 - 1.9) / 270 = ~5 mA ----
+    led ~ r_led.p1
+    r_led.p2 ~ led_a
+    led_a ~ led1.a
+    led1.k ~ gnd
 
     # ---- radar ----
     v5 ~ radar.vcc

@@ -9,13 +9,14 @@ Run on a fresh board, after make_blank_pcb.py and sync_netlist_to_board.py:
 
 Not idempotent: rebuild from make_blank_pcb.py after any change here.
 
-Layout, rev 2.0 (board mm, origin = top-left, north = top):
+Layout, rev 2.1 (board mm, origin = top-left, north = top):
   - SuperMini turned sideways: rows run east-west, USB-C at the west edge,
     chip/antenna end east. Face up with the USB-C pointing west, its 5V row
     (side A: 5V GND 3V3 13..8) is the north row (user-checked 2026-11-02).
   - North edge: the FFC connector (J3), cable leaving north toward the
     head. Its pins 3-8 fan straight down into GPIO13..8; pins 9-10 (I2C)
-    run around the module's chip end to GPIO6/7; 5V comes up between the
+    run around the module's chip end to GPIO6/7, pin 12 (head LED) outside
+    them to GPIO5; 5V comes up between the
     3V3 and GPIO13 pins, 3V3 runs under the connector body to pin 11.
   - Under the SuperMini, between its rows: the servo power USB-C (J5),
     mouth flush with the west edge right under the SuperMini's own USB-C,
@@ -49,7 +50,7 @@ VIA_X = 7.7                    # VBUS bridge vias, just behind J5's pads
 R4_AT, R5_AT = (10.0, 18.05), (10.0, 20.2)   # 0805 CC pull-downs (north CC, south CC), pad 1 west
 R2_PAD1 = (9.4, 15.5)          # 33R, pads run east; pad 1 (collector side) west
 R1_PAD1 = (9.4, 22.75)          # 270R, pads run east; pad 1 (GPIO4 side) west
-U1_PIN1 = (14.7, 22.82)        # PC817 upright: pin 2 east of pin 1, pin 4 north of it
+U1_PIN1 = (15.7, 22.82)        # PC817 upright: pin 2 east of pin 1, pin 4 north of it
 J4_PIN1 = (8.6, 31.4)          # servos: pan row 1-3-5 west, tilt row 2-4-6 south of it
 J6_PIN1 = (22.22, 31.4)        # speaker, + east, drive (pin 4) west
 D1_K = (22.22, 34.9)           # 1N4007 lying, cathode east under J6 pin 1
@@ -63,14 +64,17 @@ place_run("J2", MCU_PIN1_X, ROW_S, 1, 0)     # side B: TX RX 1..7
 place_pad1("J3", FFC_CX - 2.75, FFC_Y, 0)
 if pad_mm("J3", 12)[0] < pad_mm("J3", 1)[0] or courtyard(fps["J3"])[1] > FFC_Y - 5:
     raise SystemExit("J3: pin 1 must be west with the body north")
-stitch_pad("J3", 1, -0.8, 0)                 # FFC ground pads: via past each end of the row
-stitch_pad("J3", 12, 0.8, 0)
+stitch_pad("J3", 1, -0.8, 0)                 # FFC ground pad (1, west end): via past the row
 # Pre-routes Freerouting boxed in or necked to 0.15 mm. I2C (FFC 9 SDA,
 # 10 SCL) leaves the fan-out first, runs east above GPIO8, down past the
 # antenna keepout and back west under the south row: SCL outside, so it
 # lands on GPIO6, SDA on GPIO7. INT (FFC 8) drops below the I2C pair
 # before turning to GPIO8. 5V runs under the north row and up between the
-# 3V3 and GPIO13 pins.
+# 3V3 and GPIO13 pins. The head LED (FFC 12) runs outside the I2C pair
+# to GPIO5.
+route_path("J3", 12, [(FFC_CX + 2.75, 6.5), (26.8, 6.5), (26.8, ROW_S + 2.2),
+                      (pad_mm("J2", 7)[0] + 0.7, ROW_S + 2.2), (pad_mm("J2", 7)[0], ROW_S + 1.5),
+                      pad_mm("J2", 7)])
 route_path("J3", 9, [(FFC_CX + 1.25, 7.0), (FFC_CX + 2.05, 7.8), (25.6, 7.8), (25.6, ROW_S),
                      pad_mm("J2", 9)])
 route_path("J3", 10, [(FFC_CX + 1.75, 6.6), (FFC_CX + 2.35, 7.2), (26.2, 7.2), (26.2, ROW_S + 1.46),
@@ -183,16 +187,24 @@ labels("J2", J2_NAMES, -1.7, True)
 labels("J6", ["5V", "", "", "SPK"], -2.3, True)
 text("PRESENCE RADAR BASE", 14.0, 40.7, bottom=True)
 text(f"REV {REVISION}  {DATE}", FFC_CX, 8.7, bottom=True)
-text("R2 33R", 10.67, 16.8, bottom=True)                 # parts under the module: values below
-text("R4 R5 5.1K", 10.0, MCY, size=0.8, bottom=True)
-text("R1 270R", 10.67, 21.0, bottom=True)
-text("PC817", (pad_mm("U1", 1)[0] + pad_mm("U1", 2)[0]) / 2, MCY, angle=90, bottom=True)
+# part values, both sides: top for assembly, bottom readable once the module covers the top
+U1_MX = (pad_mm("U1", 1)[0] + pad_mm("U1", 2)[0]) / 2
+for bottom in (False, True):
+    text("PC817", U1_MX, MCY, angle=90, bottom=bottom)            # U1, inside its outline
+    text("10K", 18.4, 38.6, bottom=bottom)                        # R3
+text("5.1K", 12.4, MCY, angle=90)                                 # R4, R5 (0805, top only)
+text("5.1K", 10.0, MCY, bottom=True)
+text("33R", 12.2, 16.8)                                           # R2, top: between R2 and U1
+text("33R", 10.67, 16.8, bottom=True)
+text("270R", 12.6, 21.45)                                         # R1
+text("270R", 10.67, 21.0, bottom=True)
+text("1N4007", 12.0, 34.9, angle=90)                              # D1, top: west of it
 text("1N4007", 18.4, 36.75, bottom=True)
-text("10K", 18.4, 38.6, bottom=True)
+text("100uF 25V", 28.4, 29.0)                                     # C1
 text("USB-C  UPPER: MCU  LOWER: SERVO 5V", 0.7, MCY, angle=90, bottom=True)
 text("TO HEAD", FFC_CX, 1.6, bottom=True)
 
-for ref in ("J1", "J2", "J3", "J4", "J5", "J6", "D1", "R3", "R1", "R2", "R4", "R5", "U1"):
+for ref in ("J1", "J2", "J3", "J4", "J5", "J6", "C1", "D1", "R3", "R1", "R2", "R4", "R5", "U1"):
     fps[ref].Reference().SetVisible(False)
 clip_silk(("J3",), 0.2, keep_south=True)
 

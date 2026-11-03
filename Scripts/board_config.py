@@ -27,7 +27,7 @@ BOARD_PATH = os.path.join(BOARD_DIR, BOARD_NAME + ".kicad_pcb")
 NET_PATH = os.path.join(ROOT, "pcb", "build", BOARD_NAME + ".net")
 RENDER_DIR = os.path.join(ROOT, "pcb", "build", "renders", BOARD)
 
-REVISION = "2.0"
+REVISION = "2.1"
 DATE = "2026-11-03"
 TITLE = "ESP32 Human Presence Radar"
 BOARD_TITLE = {"base": TITLE + " - base", "head": TITLE + " - sensor head"}[BOARD]

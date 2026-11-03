@@ -1,4 +1,4 @@
-# Presence PCBs (atopile + KiCad), rev 2.0
+# Presence PCBs (atopile + KiCad), rev 2.1
 
 Two boards joined by a 12-pin 0.5 mm FFC:
 
@@ -6,9 +6,10 @@ Two boards joined by a 12-pin 0.5 mm FFC:
   pan-tilt base. ESP32-S3 SuperMini, the two SG90 servo plugs, a second USB-C
   (power only) for the servos, and a PC-case piezo beeper driven through a
   PC817.
-- **Sensor head** (46.6 x 21.0 mm, module `Head`, build `head`): rides on
+- **Sensor head** (46.6 x 25.0 mm, module `Head`, build `head`): rides on
   the two servos. HLK LD2410C-P radar, SR602 PIR and VL53L1X ToF on
-  right-angle sockets at the north edge, all facing north.
+  right-angle sockets at the north edge, all facing north, and a red
+  indicator LED behind the PIR that the firmware drives.
 
 Only the light FFC moves with the head, so the servos never pull on a USB
 cable. [`main.ato`](main.ato) is the single-file atopile project and the
@@ -19,9 +20,9 @@ since rev 2.0). The boards are `layouts/default/default.kicad_pcb` (base) and
 `layouts/head/head.kicad_pcb`, built, placed and routed by the scripts in
 [`../Scripts/`](../Scripts/Scripts.md).
 
-![Base, rev 2.0, with a fit model of the SuperMini](../docs/images/pcb_base_3d.png)
+![Base, rev 2.1, with a fit model of the SuperMini](../docs/images/pcb_base_3d.png)
 
-![Sensor head, rev 2.0, with fit models of the three sensors](../docs/images/pcb_head_3d.png)
+![Sensor head, rev 2.1, with fit models of the three sensors](../docs/images/pcb_head_3d.png)
 
 ## Build
 
@@ -57,6 +58,10 @@ the version key is `ato-version` (hyphenated).
   dropped (a boost can go inline in the radar's supply later if the 5V
   pin sags). Pin map redone so the FFC fans straight into the SuperMini
   rows.
+- 2.1 (2026-11-03): red indicator LED (D1, 3 mm, two holes) and its 270R
+  (R1) on the head right behind the PIR, driven by GPIO5 over FFC base pin
+  12 / head pin 1 (was the second GND). Head 46.6 x 25.0 mm (was 21.0) to
+  fit it.
 
 ## Board-to-board FFC
 
@@ -79,15 +84,15 @@ leaves south; lay the cable flat between them without a twist or a crease.
 | 3 | 10 | `radar_out` | 9 | 4 | `tof_sda` |
 | 4 | 9 | `radar_rx` | 10 | 3 | `tof_scl` |
 | 5 | 8 | `radar_tx` | 11 | 2 | `v3v3` |
-| 6 | 7 | `pir_out` | 12 | 1 | `gnd` |
+| 6 | 7 | `pir_out` | 12 | 1 | `led` |
 
 The order follows the sensors west to east on the head (radar, PIR, ToF),
-so both boards route on F.Cu. GND sits on both ends and the two supplies on
-pins 2 and 11: a cable of the other type (k to k) lands GND on GND, swaps
-5V and 3V3 and lands signals on signals, so nothing works but nothing gets
-5V on a signal pin. Before plugging in the sensors, check with a meter:
-base J3 pin 2 (or the SuperMini 5V pin) must beep to the head's radar VCC
-pin.
+so both boards route on F.Cu. The two supplies sit on pins 2 and 11. Since
+rev 2.1 only base pin 1 is GND; base pin 12 carries the LED. A cable of the
+other type (k to k) swaps 5V and 3V3 and grounds the head only through
+GPIO5, so it is no longer harmless. Before plugging in the sensors, check
+with a meter: base J3 pin 2 (or the SuperMini 5V pin) must beep to the
+head's radar VCC pin, and base pin 1 (GND) to the head's GND.
 
 ## Base board
 
@@ -101,7 +106,8 @@ pin.
   end is a copper keepout on both layers.
 - North edge: FFC J3, cable leaving north. Its pins 3-8 fan straight down
   into GPIO13..8. The I2C pair (pins 9, 10) runs east above GPIO8, down
-  past the antenna keepout and back west under the south row to GPIO7/6.
+  past the antenna keepout and back west under the south row to GPIO7/6;
+  the LED line (pin 12) runs the same way just outside it to GPIO5.
   5V runs under the north row and up between the 3V3 and GPIO13 pins; 3V3
   runs under the connector body to pin 11.
 - Under the SuperMini, all under 11 mm (the module's underside):
@@ -128,14 +134,15 @@ pin.
   the FFC's 0.3 mm pads; Servo (`servo_5v`) 0.4 mm; the rest 0.2 mm.
 - Mounting holes (M2.5): north-east corner and south-west corner.
 - Silkscreen: SuperMini pin labels on both sides, servo rows (TILT, PAN),
-  speaker + and DRV, part values for the parts under the module on the
-  bottom.
+  speaker + and DRV. Every part's value (270R, 33R, 5.1K, PC817, 1N4007,
+  10K, 100uF 25V) is printed next to it on top instead of its reference;
+  the parts under the module repeat it on the bottom.
 
 ![Base, top silkscreen over F.Cu](../docs/images/pcb_base_silkscreen_top.png)
 
 ## Sensor head
 
-- 46.6 x 21.0 mm, 1.6 mm, 2 layers. DRC 0/0.
+- 46.6 x 25.0 mm, 1.6 mm, 2 layers. DRC 0/0.
 - North edge, west to east: radar (J1), PIR (J3), ToF (J2), on right-angle
   sockets whose openings sit 1 mm past the edge. Each module stands at 90
   degrees to the board and faces north. The three modules side by side set
@@ -144,8 +151,13 @@ pin.
   fans straight up to its socket pin; the radar's 5V reaches the PIR along
   the north side of the radar pins, and the FFC's 5V pin reaches it over
   one short B.Cu hop.
-- South-west: C1 (100 uF) and C2 (100 nF) on the radar's 5V. Mounting
-  holes in both south corners.
+- Silkscreen: sensor pin labels on both sides; each part's value (RED,
+  270R, 100uF 25V, 100nF) next to it instead of its reference.
+- Right behind the PIR: the red LED D1 (anode west, cathode to the GND
+  pour) and its 270R R1 standing west of it. The LED line leaves FFC pin 1
+  (east end), runs south under the connector body and comes up to R1.
+- South-west: C1 (100 uF) and C2 (100 nF, pads north-south) on the
+  radar's 5V. Mounting holes in both south corners.
 
 ![Sensor head, top silkscreen over F.Cu](../docs/images/pcb_head_silkscreen_top.png)
 
@@ -168,9 +180,12 @@ pin.
 | VL53L1X breakout (GY-style, silkscreen "VL53L0/1XV2") | Head | 1x6 female, right-angle | VIN GND SCL SDA GPIO1 XSHUT, from the store listing |
 | C1 (head) | Head | 100 uF / 25 V, 6.3 x 11 mm, standing. Chosen 2026-11-03: Linh kiện NtShop "Tụ hóa 25V" pack, 100uF/25V x20 | Radar 5V bulk, square pad = + |
 | C2 (head) | Head | 100 nF ceramic disc, marked "104", 50 V, 5 mm pitch. Chosen 2026-11-03: "Combo 10 Tụ Gốm 104 100nF 50V" | Radar 5V, high frequency |
+| D1 (head) | Head | Red LED, 3 or 5 mm, 2.54 mm leads, standing | Pad 1 (square) = cathode, flat side, short lead |
+| R1 (head) | Head | 270R, standing, 2.54 mm | GPIO5 side south; (3.3 - 1.9) / 270 = about 5 mA |
 
-The head has no resistors: the ToF breakout carries its own I2C and XSHUT
-pull-ups, and the radar's UART and OUT are 3.3 V push-pull. Check the ToF
+The LED's 270R is the head's only resistor: the ToF breakout carries its
+own I2C and XSHUT pull-ups, and the radar's UART and OUT are 3.3 V
+push-pull. Check the ToF
 pin order against the silkscreen on the real part before soldering.
 
 The FFC connectors, J5's six pads and R4/R5 are the only surface-mount
@@ -188,6 +203,7 @@ layout scripts, not measured parts.
 | 1 | `servo_pan` | Pan servo, 50 Hz LEDC, 500-2400 us |
 | 2 | `servo_tilt` | Tilt servo |
 | 4 | `beep` | PC817 LED through 270R; a 2-4 kHz square wave = tone |
+| 5 | `led` | Head red LED, high = on (about 5 mA) |
 | 6 | `tof_scl` | I2C SCL |
 | 7 | `tof_sda` | I2C SDA |
 | 8 | `tof_int` | ToF GPIO1, data-ready interrupt (open drain) |
@@ -198,7 +214,7 @@ layout scripts, not measured parts.
 | 13 | `radar_out` | Radar OUT, high = presence |
 
 Kept free: GPIO3 (strap), GPIO43/44 (UART0 boot log), GPIO48 (onboard
-WS2812 and red LED). Spare: GPIO5.
+WS2812 and red LED). No spare GPIO left on the headers.
 
 ## Power
 

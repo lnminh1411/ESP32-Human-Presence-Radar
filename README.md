@@ -15,7 +15,7 @@ A small desk presence board: ESP32-S3 SuperMini on a fixed base, HLK LD2410C-P m
 
 The webcam presence check in PcHwCtl fails in the dark (luma 0.1 in low-power mode reads `unknown/dark`) and its depth model can't tell 1.75 m from 2.0 m. Radar and ToF work without light and give a measured distance.
 
-Status: PCB rev 2.0 laid out and routed as two boards joined by an FFC: base 32.0 x 42.0 mm (SuperMini, servos, beeper) and sensor head 46.6 x 21.0 mm (radar, PIR, ToF), DRC 0/0 on both, Gerbers built, not ordered. No firmware yet, bench tests in `docs/bringup.md`.
+Status: PCB rev 2.1 laid out and routed as two boards joined by an FFC: base 32.0 x 42.0 mm (SuperMini, servos, beeper) and sensor head 46.6 x 25.0 mm (radar, PIR, ToF, red indicator LED), DRC 0/0 on both, Gerbers built, not ordered. No firmware yet, bench tests in `docs/bringup.md`.
 
 ## Links
 

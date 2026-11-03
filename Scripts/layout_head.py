@@ -9,7 +9,7 @@ Run on a fresh board, after make_blank_pcb.py and sync_netlist_to_board.py:
 
 Not idempotent: rebuild from make_blank_pcb.py after any change here.
 
-Layout, rev 2.0 (board mm, origin = top-left, north = top):
+Layout, rev 2.1 (board mm, origin = top-left, north = top):
   - North edge, west to east: radar (J1), PIR (J3), ToF (J2), each on a
     right-angle socket whose opening sits 1 mm past the edge, so the
     modules stand at 90 degrees to the board and face north.
@@ -17,15 +17,17 @@ Layout, rev 2.0 (board mm, origin = top-left, north = top):
     toward the base. Its pin order follows the sensors west to east, so
     every signal fans straight up to its socket pin; the radar's 5V reaches
     the PIR along the north side of the radar pins.
-  - South-west: C1 (100u) and C2 (100n) on the radar's 5V. Mounting holes
-    in the two south corners.
+  - Behind the PIR: the red indicator LED (D1, anode west) and its 270R
+    (R1, standing), fed from FFC pin 1 (GPIO5 on the base).
+  - South-west: C1 (100u) and C2 (100n, standing north-south) on the
+    radar's 5V. Mounting holes in the two south corners.
 """
 from board_config import DATE, REVISION
 from layout_common import (add_fit_models, box, check_courtyards, clip_silk, fps, holes,
                            labels, outline, pad_mm, place_edge_socket, place_pad1, place_run,
                            save, stitch_pad, text)
 
-W, H = 46.6, 21.0
+W, H = 46.6, 25.0
 SENSOR_PIN_Y = 9.6             # sensor socket pin row; opening 1 mm past the north edge
 RADAR_VCC_X = 2.57             # radar pad 5 (VCC), west end of J1
 PIR_OUT_X = 20.36              # SR602 pad 3 (OUT), west end of J3
@@ -34,10 +36,12 @@ RADAR_W, RADAR_H = 16.0, 22.0  # module outlines (approx., for the fit check)
 TOF_W, TOF_H = 17.0, 11.0
 PIR_DIA, PIR_LENS = 13.5, 10.0
 
-FFC_CX = 27.3                  # FFC centre; pins run west 12..1 east
+FFC_CX = 29.0                  # FFC centre; pins run west 12..1 east
 FFC_Y = H - 5.4                # pad row: body (5.2 deep) ends 0.2 inside the south edge
-C1_PAD1 = (8.6, 17.4)          # 100u, + west
-C2_PAD1 = (14.6, 17.6)         # 100n, pads run east
+C1_PAD1 = (8.6, H - 3.6)       # 100u, + west
+C2_PAD1 = (15.5, H - 6.4)      # 100n, pads run south
+D1_K = (24.57, 16.0)           # LED cathode (pad 1), anode 2.54 west
+R1_PAD1 = (19.0, 18.04)        # 270R, pad 1 (from the FFC) south, pad 2 north
 HOLES = [(3.2, H - 3.2), (W - 3.2, H - 3.2)]
 
 # ---- placement ----------------------------------------------------------------
@@ -47,11 +51,12 @@ place_edge_socket("J2", 6, TOF_XSHUT_X, SENSOR_PIN_Y)
 place_pad1("J4", FFC_CX + 2.75, FFC_Y, 180)
 if pad_mm("J4", 12)[0] > pad_mm("J4", 1)[0]:
     raise SystemExit("J4: pin 12 must be west")
-# FFC ground pads (1 east, 12 west): via just past each end of the pin row
-stitch_pad("J4", 1, 0.8, 0)
+# FFC ground pad (12, west end): via just past the end of the pin row
 stitch_pad("J4", 12, -0.8, 0)
 place_run("C1", *C1_PAD1, 1, 0)
-place_run("C2", *C2_PAD1, 1, 0)
+place_run("C2", *C2_PAD1, 0, 1)
+place_run("D1", *D1_K, -1, 0)
+place_run("R1", *R1_PAD1, 0, -1)
 
 outline(W, H)
 holes(HOLES)
@@ -70,9 +75,14 @@ text("TOF", 38.35, 12.9)
 text("TO BASE", FFC_CX, FFC_Y - 2.0)
 text("ESP32 PRESENCE RADAR - HEAD", 23.3, 4.0, bottom=True)
 text(f"REV {REVISION}  {DATE}", 23.3, 5.6, bottom=True)
-text("BASE PIN k = HEAD 13-k", FFC_CX, FFC_Y - 3.3, bottom=True)
+text("BASE PIN k = HEAD 13-k", FFC_CX, D1_K[1] - 2.4, bottom=True)
+# part values
+text("RED", 27.2, D1_K[1])                                        # D1
+text("270R", 16.4, R1_PAD1[1] - 2.54)                             # R1
+text("100uF 25V", C1_PAD1[0] + 1.25, C1_PAD1[1] - 4.2)            # C1
+text("100nF", C2_PAD1[0] + 2.1, C2_PAD1[1] + 2.5, angle=90)       # C2
 
-for ref in ("J1", "J2", "J3", "J4"):
+for ref in ("J1", "J2", "J3", "J4", "C1", "C2", "D1", "R1"):
     fps[ref].Reference().SetVisible(False)
 clip_silk(("J1", "J2", "J3"), 0.2, keep_south=True)
 clip_silk(("J4",), H - 0.2, keep_south=False)
