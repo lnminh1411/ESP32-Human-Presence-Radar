@@ -51,7 +51,7 @@ Results:
 - The SuperMini didn't reset during the sweep (its uptime counter kept counting), so USB 5V carries an unloaded SG90.
 - Driving GPIO8 moves the servo on the pin labelled 8, so that header label matches GPIO8.
 
-The servo isn't part of the PCB design. Since rev 1.3, `pcb\README.md` puts the SR602 PIR on GPIO8 (spare pins there: GPIO1, 2, 4, 9), so a board servo would need a different GPIO than this bench test used.
+The servo isn't part of the PCB design. On the rev 2.0 board the servos are on GPIO1 (pan) and GPIO2 (tilt), and GPIO8 is the ToF interrupt (`pcb\README.md`), so this bench test's GPIO8 wiring doesn't carry over.
 
 ## HLK LD2410C-P radar
 
