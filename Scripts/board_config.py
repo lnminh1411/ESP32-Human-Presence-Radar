@@ -15,8 +15,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # repo root 
 BOARD_DIR = os.path.join(ROOT, "pcb", "layouts", "default")
 BOARD_PATH = os.path.join(BOARD_DIR, "default.kicad_pcb")
 
-REVISION = "1.2"
-DATE = "2026-11-02"
+REVISION = "1.3"
+DATE = "2026-11-03"
 TITLE = "ESP32 Human Presence Radar"
 
 # Power nets (routed as tracks) -- net class "Power" in

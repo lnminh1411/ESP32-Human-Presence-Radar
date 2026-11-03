@@ -7,7 +7,10 @@ Transform { translation 5.5118 -8.2362 4.9016 children [ Shape { appearance Appe
 Transform { translation 5.3543 -8.3858 1.1811 children [ Shape { appearance Appearance { material Material { diffuseColor 0.05 0.45 0.2 transparency 0.0 } } geometry Box { size 4.3307 4.0945 0.3937 } } ] }
 Transform { translation 5.7480 -7.9921 2.1654 children [ Shape { appearance Appearance { material Material { diffuseColor 0.15 0.15 0.15 transparency 0.0 } } geometry Box { size 2.7559 2.7559 1.5748 } } ] }
 Transform { translation 4.9606 -9.8425 1.8110 children [ Shape { appearance Appearance { material Material { diffuseColor 0.1 0.1 0.1 transparency 0.0 } } geometry Box { size 1.9685 0.8661 0.8661 } } ] }
-Transform { translation 12.2756 0.8858 0.6102 children [ Shape { appearance Appearance { material Material { diffuseColor 0.1 0.1 0.1 transparency 0.0 } } geometry Box { size 5.0000 0.9843 0.9843 } } ] }
-Transform { translation 12.2756 1.5748 4.3307 children [ Shape { appearance Appearance { material Material { diffuseColor 0.1 0.35 0.15 transparency 0.15 } } geometry Box { size 6.2992 0.3937 8.6614 } } ] }
+Transform { translation 15.4646 0.8858 0.6102 children [ Shape { appearance Appearance { material Material { diffuseColor 0.1 0.1 0.1 transparency 0.0 } } geometry Box { size 5.0000 0.9843 0.9843 } } ] }
+Transform { translation 15.4646 1.5748 4.3307 children [ Shape { appearance Appearance { material Material { diffuseColor 0.1 0.35 0.15 transparency 0.15 } } geometry Box { size 6.2992 0.3937 8.6614 } } ] }
 Transform { translation 3.2480 0.8858 0.6102 children [ Shape { appearance Appearance { material Material { diffuseColor 0.1 0.1 0.1 transparency 0.0 } } geometry Box { size 6.0000 0.9843 0.9843 } } ] }
 Transform { translation 3.2480 1.5748 2.1654 children [ Shape { appearance Appearance { material Material { diffuseColor 0.4 0.1 0.5 transparency 0.15 } } geometry Box { size 6.6929 0.3937 4.3307 } } ] }
+Transform { translation 9.4488 0.8858 0.6102 children [ Shape { appearance Appearance { material Material { diffuseColor 0.1 0.1 0.1 transparency 0.0 } } geometry Box { size 3.0000 0.9843 0.9843 } } ] }
+Transform { translation 9.4488 1.5748 2.6575 children [ Shape { appearance Appearance { material Material { diffuseColor 0.05 0.05 0.05 transparency 0.15 } } geometry Box { size 5.3150 0.3937 5.3150 } } ] }
+Transform { translation 9.4488 3.7402 2.6575 children [ Shape { appearance Appearance { material Material { diffuseColor 0.95 0.95 0.92 transparency 0.1 } } geometry Box { size 3.9370 3.9370 3.9370 } } ] }

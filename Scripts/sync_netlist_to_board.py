@@ -44,7 +44,7 @@ NET_PATH = os.path.join(ROOT, "pcb", "build", "default.net")
 # part would renumber every part after it (and every ref-keyed placement in
 # layout_board.py with it). Instance names only change when main.ato says so.
 REF_BY_INSTANCE = {"mcu.a": "J1", "mcu.b": "J2", "radar": "J3", "tof": "J4",
-                   "boost": "PS1", "jp1": "JP1", "c1": "C1", "c2": "C2"}
+                   "pir": "J5", "boost": "PS1", "jp1": "JP1", "c1": "C1", "c2": "C2"}
 LOCAL_LIBS = {"PresenceRadar": os.path.join(ROOT, "pcb", "footprints", "PresenceRadar.pretty")}
 
 

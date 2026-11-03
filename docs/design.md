@@ -8,6 +8,8 @@ Decisions made with the user on 2026-11-02, before any code or PCB. Each section
 - Radar: HLK LD2410C-P, 24 GHz FMCW. Reports moving and stationary targets with per-gate energy. The beam is about ±60° wide.
 - ToF: VL53L1X, up to 4 m in long mode in the dark. Its field of view is a 27° cone, so it must point straight at the target.
 - No thermal array (dropped 2026-11-02): an AMG8833 8x8 module was considered as a third presence signal, out to about 2 m. The 26k VND listing turned out to be a pricing error; the real price is about 697k VND. If it comes back, it fits on the ToF's I2C bus (0x68/0x69; ToF at 0x29), but the north edge has no room left, so the board would have to grow.
+- PIR: SR602 mini PIR (rev 1.3, 2026-11-03), on GPIO8, between the two other sensors. It reacts only to warm bodies moving, so it ignores the fan beside the chair, which the radar reads as motion. A PIR can't see someone sitting perfectly still; that stays with the radar's stationary energy and the ToF. Keep the fan from blowing on the PIR: moving air changes its window temperature and can trigger it. The bare RE200B element was ruled out: it needs an amplifier, a comparator and a lens.
+- Presence rules for the firmware (decided 2026-11-03): desk presence needs the radar target at chair distance and the ToF reading in the chair band; radar motion counts only if the PIR fired in the last few seconds; the radar's maximum gate sits just past the chair; at night, act only on several seconds of agreement, and the camera vetoes anything consequential (waking the PC, intruder lock).
 - Own small PCB.
 
 ## Links
@@ -28,6 +30,7 @@ The board stays on PC USB 24/7 for power, so it also carries data to the PcHwCtl
 Constraints:
 - USB identity in the README. The ESP32 helper's serial fallback takes the first `USB\VID_303A` COM port, and `scripts/idf_flash.py` in the ESP32 PC Controller repo auto-detects VID `0x303A`. Both must filter on the main board's PID and interface so they never open the radar board. PcHwCtl must likewise open only PID `0x8F52`.
 - In ROM download mode both boards show up as `0x303A:0x1001`. Flashing tools must tell them apart by serial number (eFuse MAC).
+- Port: a rear USB 3.2 Gen 1 port (decided 2026-11-03, replacing the earlier USB 2.0 plan), 900 mA. The SuperMini is a USB 2.0 device and uses its USB 2.0 lines.
 - With the PC off, the USB port must keep 5 V standby power. That needs BIOS ErP turned off (still pending on the user's PC). Without it the board loses power exactly when ESP-NOW matters: at night and while away.
 
 ### No dedicated camera

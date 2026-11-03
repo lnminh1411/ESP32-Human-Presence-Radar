@@ -1,4 +1,4 @@
-# Presence PCB (atopile + KiCad), rev 1.2
+# Presence PCB (atopile + KiCad), rev 1.3
 
 [`main.ato`](main.ato) is the single-file atopile project and the source of
 truth for the netlist. Every part is defined locally with explicit pins; all
@@ -7,9 +7,9 @@ The KiCad board is `layouts/default/default.kicad_pcb`, built, placed and
 routed by the scripts in [`../Scripts/`](../Scripts/Scripts.md), the same
 chain as the ESP32 PC Controller carrier.
 
-![Rev 1.2: top silkscreen over F.Cu](../docs/images/pcb_silkscreen_top.png)
+![Rev 1.3: top silkscreen over F.Cu](../docs/images/pcb_silkscreen_top.png)
 
-![Rev 1.2 with fit models of the plugged-in modules](../docs/images/pcb_3d.png)
+![Rev 1.3 with fit models of the plugged-in modules](../docs/images/pcb_3d.png)
 
 ## Build
 
@@ -34,14 +34,22 @@ renders, Gerbers) is in [`../Scripts/Scripts.md`](../Scripts/Scripts.md). In
   sensors now at the edges), north-west mounting hole moved between the
   sensors, sensor sockets keep their stock silk (a line per pin, pin-1
   hatch) cut at the board edge, pin labels on both sides.
+- 1.3 (2026-11-03): 46.6 x 36.5 mm. SR602 PIR (J5) added between the two
+  sensors on GPIO8, to veto radar motion with no warm body behind it (a
+  fan beside the chair). Radar and C1 moved 8.1 mm east, mounting holes
+  moved to the south-west corner and the east edge. Board now on a rear
+  USB 3.2 Gen 1 port.
 
 ## Board
 
-- 38.5 x 33.5 mm, 1.6 mm, 2 layers, every part through-hole. DRC 0/0.
+- 46.6 x 36.5 mm, 1.6 mm, 2 layers, every part through-hole. DRC 0/0.
 - North edge: ToF (J4) in the north-west corner and radar (J3) in the
   north-east corner, on right-angle sockets whose openings sit 1 mm past the edge. Each module
   stands at 90 degrees to the board and faces north, away from it, so the
   board's north edge points at the chair.
+- PIR (J5) between them on the same kind of right-angle socket (1x3), so
+  it also stands facing north. The three modules side by side set the
+  board width.
 - SuperMini on J1 (north row, side A: 5V GND 3V3 13..8) and J2 (south row,
   side B: TX RX 1..7), rows 15.24 mm apart, **USB-C pointing west**, chip
   and antenna end east. Face up with the USB-C to the right, the 5V row is
@@ -54,25 +62,29 @@ renders, Gerbers) is in [`../Scripts/Scripts.md`](../Scripts/Scripts.md). In
   tall; the SuperMini's underside sits 11 mm up on its sockets). The last
   4.8 mm at the antenna end is a copper keepout on both layers. Changing
   JP1 means unplugging the SuperMini; it is a set-once choice at bring-up.
-- East strip: C1 lying flat (leads bent 90 degrees, body pointing north),
-  the radar supply and signal tracks, one mounting hole. The two sensor
-  sockets fix the board width at 38.5 mm, so this strip costs no area. C1
+- East strip: C1 lying flat under the radar's VCC pin (leads bent 90
+  degrees, body pointing north), the radar supply and signal tracks, one
+  mounting hole. The sensors fix the board width, so this strip costs no
+  area. C1
   can't also go under the module: the boost (11 mm) and a lying 6.3 x 11 mm
   C1 (12.3 mm with its leads) don't fit in the 17 mm between the USB-C end
   and the antenna zone.
-- Routing: everything on F.Cu; B.Cu is an unbroken GND pour. The Power
-  class (`v5`, `radar_5v`, `boost_out`) is 0.4 mm so it fits between 2.54 mm
-  header pads; `v3v3` feeds only the ToF and is 0.2 mm, running behind the
-  ToF socket pins. Short B.Cu jumpers are allowed if a later change needs
-  them.
-- Mounting holes (M2.5): on the north edge between the two sensors, and the
-  south-east corner.
+- Routing: mostly F.Cu; B.Cu is the GND pour with three jumpers and one
+  via. `radar_5v` (JP1, C2, C1, radar VCC, PIR 5V) has to sit between the
+  radar's signal pins and the SuperMini, so two radar signals cross it on
+  B.Cu: `radar_tx` diagonally from the radar to GPIO5, `radar_out` to a
+  via, then F.Cu to GPIO7. `boost_out` (JP1 pin 3 to the boost's VO) is a
+  short B.Cu hop under the module. All stay outside the antenna keepout;
+  the pour flows around them. The Power class (`v5`, `radar_5v`,
+  `boost_out`) is 0.4 mm so it fits between 2.54 mm header pads; `v3v3`
+  feeds only the ToF and is 0.2 mm, running behind the ToF socket pins.
+- Mounting holes (M2.5): south-west corner below the SuperMini's south row,
+  and the east edge under the radar.
 - Silkscreen: both sides carry one label per pad. The top ones read while
   assembling; the bottom ones stay readable once the modules cover the top.
   The right-angle sensor sockets keep their stock silk (body outline, a
   line per pin, hatched pin 1), cut 0.2 mm inside the board edge. The top
-  also carries JP1's pin numbers and setting, C1, C2 and the
-  boost. The bottom adds the title, revision and a USB-C marker.
+  also carries JP1's pin numbers and setting, C1, C2 and the boost. The bottom adds the title, revision and a USB-C marker.
 
 ![Bottom silkscreen, seen from below](../docs/images/pcb_silkscreen_bottom.png)
 
@@ -85,6 +97,7 @@ renders, Gerbers) is in [`../Scripts/Scripts.md`](../Scripts/Scripts.md). In
 | VL53L1X breakout (GY-style, silkscreen "VL53L0/1XV2") | 1x6 female, right-angle | VIN GND SCL SDA GPIO1 XSHUT, from the store listing |
 | 0.9-5V to 5V boost (10.4 x 11 mm, SS14, 150 kHz) | Soldered on a 1x3 male header, face up, pins on its north edge, VIN east | V1 GND Vo (store photo) |
 | JP1 | 1x3 pin header + jumper cap, under the SuperMini | 1 = SuperMini 5V, 2 = radar 5V, 3 = boost out |
+| SR602 mini PIR (13.5 mm round board, 10 mm lens, 70-100 degrees, about 5 m) | 1x3 female, right-angle, pins straight out the module's back | Front view: - + OUT, so facing north OUT is west (store dimension drawing); pads GND 5V OUT, east to west. 3.7-12 V (listing; photo says 4.5-20 V), fed from `radar_5v`; OUT 3.3 V digital, hold 1-18 s |
 | C1 | 100 uF / 25 V electrolytic (10 V minimum), 6.3 x 11 mm, leads bent 90 degrees, lying flat. Chosen 2026-11-03: Linh kiện NtShop "Tụ hóa 25V" pack, 100uF/25V x20 | Radar 5V bulk, square pad = + |
 | C2 | 100 nF ceramic disc, marked "104", 50 V, 5 mm lead pitch, under the SuperMini: seat it flush, top below ~9 mm. Chosen 2026-11-03: "Combo 10 Tụ Gốm 104 100nF 50V" | Radar 5V, high frequency |
 
@@ -94,7 +107,7 @@ GPIO drives a load. Check the ToF pin order against the silkscreen on the
 real part, and meter the boost's GND pin, before soldering.
 
 The fit models in the 3D renders (the SuperMini at its real height, the
-boost, the two sensors standing in their sockets) are approximate outlines
+boost, the three sensors standing in their sockets) are approximate outlines
 drawn by `layout_board.py`, not measured parts.
 
 ## Pin map
@@ -104,19 +117,22 @@ drawn by `layout_board.py`, not measured parts.
 | 5 | `radar_tx` | MCU RX from radar TX (UART1, 256000 8N1) |
 | 6 | `radar_rx` | MCU TX to radar RX |
 | 7 | `radar_out` | Radar OUT, high = presence |
+| 8 | `pir_out` | PIR OUT, high = warm body moved (3.3 V push-pull) |
 | 10 | `tof_scl` | I2C SCL |
 | 11 | `tof_sda` | I2C SDA |
 | 12 | `tof_int` | ToF GPIO1, data-ready interrupt (open drain) |
 | 13 | `tof_xshut` | ToF XSHUT, low = sensor off |
 
 Kept free: GPIO3 (strap), GPIO43/44 (UART0 boot log), GPIO48 (onboard
-WS2812 and red LED). Spare: GPIO1, 2, 4, 8, 9.
+WS2812 and red LED). Spare: GPIO1, 2, 4, 9.
 
 ## Power
 
 The board's only supply is the SuperMini's own USB-C, plugged into a rear
-panel USB 2.0 port. The SuperMini's 5V and 3V3 pins are outputs: 5V feeds
-the radar and C1/C2, 3V3 feeds the ToF.
+panel USB 3.2 Gen 1 port (900 mA; the SuperMini is a USB 2.0 device and
+uses that port's USB 2.0 lines). The SuperMini's 5V and 3V3 pins are
+outputs: 5V feeds the radar, the PIR and C1/C2 (through jp1), 3V3 feeds the
+ToF.
 
 Jumper jp1 picks the radar's supply (net `radar_5v`). With the cap on 1-2
 the radar runs from the SuperMini 5V pin directly. With the cap on 2-3 it
@@ -134,7 +150,7 @@ the port turns off, C1 (1.25 mJ at 5 V) drains into the board's own load
 within milliseconds. A Schottky in series would drop 0.3 to 0.45 V and put
 the radar under Hi-Link's 5 V minimum.
 
-C1 is over the USB 2.0 limit of 10 uF on VBUS at attach, so plugging in
+C1 is over the USB limit of 10 uF on VBUS at attach, so plugging in
 draws a short inrush spike. Rear panel ports are current-limited and handle
 it. If the port ever browns out on plug-in, lower C1 to 47 uF or add a
 soft-start; a diode does not fix inrush.

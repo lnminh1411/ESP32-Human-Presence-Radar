@@ -11,11 +11,12 @@ Not idempotent: re-running it on its own output corrupts live pcbnew SWIG
 references. Rebuild from make_blank_pcb.py after any change here. Never
 fp.Remove() footprint graphics; move them to another layer instead.
 
-Layout, rev 1.2 (board coordinates, mm, origin = top-left, north = top):
+Layout, rev 1.3 (board coordinates, mm, origin = top-left, north = top):
   - North edge: ToF (J4) in the north-west corner and radar (J3) in the
     north-east corner, on right-angle sockets whose openings sit 1 mm past
     the edge, so each module stands at 90 degrees to the board and faces
-    north. A mounting hole sits between them.
+    north. The SR602 PIR (J5) stands between them on the same kind of
+    socket, lens facing north.
   - SuperMini turned sideways: rows run east-west, USB-C at the west edge,
     chip/antenna end east. Face up with the USB-C pointing west, its 5V row
     (side A: 5V GND 3V3 13..8) is the north row (user-checked 2026-11-02),
@@ -23,8 +24,10 @@ Layout, rev 1.2 (board coordinates, mm, origin = top-left, north = top):
   - Under the SuperMini, between its rows: JP1 (radar supply jumper), C2 and
     the boost (PS1), soldered on a male header about 7.5 mm tall; the
     module's underside is 11 mm up. The antenna end stays clear.
-  - East strip (needed anyway: the two sensor sockets set the board width):
+  - East strip (needed anyway: the three sensors set the board width):
     C1 lying flat, the radar supply and signal tracks, one mounting hole.
+  - South strip below the SuperMini: the second mounting hole, south-west,
+    diagonal to the first.
   - Pin labels on both sides: the top ones read while assembling, the
     bottom ones once the modules cover the top.
 """
@@ -36,7 +39,7 @@ from board_config import BOARD_PATH, KICAD_FOOTPRINTS, REVISION, DATE, ROOT
 
 MM = pcbnew.FromMM
 OX, OY = 100.0, 100.0          # board top-left in KiCad page coordinates
-W, H = 38.5, 33.5              # board size
+W, H = 46.6, 36.5              # board size
 
 SENSOR_PIN_Y = 9.6             # sensor socket pin row; opening 1 mm past the north edge
 ROW_N, ROW_S = 13.3, 13.3 + 15.24   # SuperMini rows (15.24 mm measured)
@@ -44,14 +47,16 @@ MCU_USB_X = 0.5                # module's USB-C end
 MCU_PIN1_X = MCU_USB_X + 1.6   # pin 1 (5V / TX); pins run east at 2.54
 MCU_LEN, MCU_WIDTH = 23.5, 18.0
 TOF_XSHUT_X = 1.9              # ToF XSHUT pad: socket courtyard 0.1 mm in from the west edge
-RADAR_VCC_X = 26.1             # radar VCC pad (west end of J3)
+RADAR_VCC_X = 34.2             # radar VCC pad (west end of J3)
+PIR_OUT_X = 21.46              # SR602 OUT pad (west end of J5), over GPIO8; GND at the east end
+PIR_DIA, PIR_LENS = 13.5, 10.0 # module board diameter, lens dome
 ANT_X0 = 19.2                  # antenna keepout starts here (module chip end at 24.0)
 
 JP1_X, JP1_PIN1_Y = 2.4, 17.4         # supply jumper under the module, pins run south
 C2_PAD1 = (6.5, 17.7)                  # 100n, pads run south
 PS1_PIN1 = (16.14, 17.4)               # boost header, pin 1 (VIN) east, pins run west
-C1_PAD1 = (27.0, 29.6)                 # lying 100u, pads east-west, body north
-HOLES = [(20.35, 5.5), (35.5, 30.0)]   # M2.5: between the sensors, south-east corner
+C1_PAD1 = (35.1, 29.6)                 # lying 100u, pads east-west, body north, under the radar VCC
+HOLES = [(3.0, 33.4), (43.6, 15.0)]    # M2.5: south-west corner, east edge under the radar
 
 BOOST_W, BOOST_D = 11.0, 10.4          # module, along the pins / away from them
 BOOST_PIN_EDGE = 1.3                   # pin row centre to the module's pin edge
@@ -125,6 +130,7 @@ place_run("J1", MCU_PIN1_X, ROW_N, 1, 0)     # side A: 5V GND 3V3 13..8
 place_run("J2", MCU_PIN1_X, ROW_S, 1, 0)     # side B: TX RX 1..7
 place_edge_socket("J4", 6, TOF_XSHUT_X)      # ToF pad 6 = XSHUT
 place_edge_socket("J3", 5, RADAR_VCC_X)      # radar pad 5 = VCC
+place_edge_socket("J5", 3, PIR_OUT_X)        # PIR pad 3 = OUT
 place_run("JP1", JP1_X, JP1_PIN1_Y, 0, 1)
 place_run("C2", *C2_PAD1, 0, 1)
 place_run("PS1", *PS1_PIN1, -1, 0)
@@ -156,7 +162,7 @@ for i, (x, y) in enumerate(HOLES, start=1):
 # ---- overlap check (courtyards; sensor sockets may overhang north) -------------
 boxes = {r: courtyard(fp) for r, fp in fps.items()}
 for r, (x0, y0, x1, y1) in boxes.items():
-    if x0 < 0 or x1 > W or y1 > H or (y0 < 0 and r not in ("J3", "J4")):
+    if x0 < 0 or x1 > W or y1 > H or (y0 < 0 and r not in ("J3", "J4", "J5")):
         print(f"  ! {r} courtyard leaves the board: ({x0:.2f},{y0:.2f})-({x1:.2f},{y1:.2f})")
 refs = sorted(boxes)
 for i, r in enumerate(refs):
@@ -200,6 +206,7 @@ J1_NAMES = ["5V", "GND", "3V3", "13", "12", "11", "10", "9", "8"]
 J2_NAMES = ["TX", "RX", "1", "2", "3", "4", "5", "6", "7"]
 J4_NAMES = ["VIN", "GND", "SCL", "SDA", "INT", "XSH"]
 J3_NAMES = ["TX", "RX", "OUT", "GND", "VCC"]
+J5_NAMES = ["GND", "5V", "OUT"]
 PS1_NAMES = ["VIN", "GND", "VO"]
 
 # top: one label per pad. SuperMini rows label on their inside, the boost
@@ -209,6 +216,7 @@ labels("J1", J1_NAMES, 2.05, False)
 labels("J2", J2_NAMES, -2.05, False)
 labels("J4", J4_NAMES, 1.85, False)
 labels("J3", J3_NAMES, 1.85, False)
+labels("J5", J5_NAMES, 1.85, False)
 labels("PS1", PS1_NAMES, 2.1, False)
 for num in (1, 2, 3):
     x, y = pad_mm("JP1", num)
@@ -221,18 +229,19 @@ labels("J1", J1_NAMES, 1.7, True)
 labels("J2", J2_NAMES, -1.7, True)
 labels("J4", J4_NAMES, -1.7, True)
 labels("J3", J3_NAMES, -1.7, True)
+labels("J5", J5_NAMES, -1.7, True)
 labels("PS1", PS1_NAMES, 1.7, True)
 for num in (1, 2, 3):
     x, y = pad_mm("JP1", num)
     text(str(num), x + 1.6, y, RIGHT, bottom=True)   # mirrored: RIGHT reads east of the pad
 text("ESP32 PRESENCE RADAR", 13.0, 24.4, bottom=True)
 text("USB-C", 1.0, 21.0, angle=90, bottom=True)
-text(f"REV {REVISION}  {DATE}", 33.6, 20.5, angle=90, bottom=True)
-text("JP1 1-2 5V  2-3 BOOST", 35.2, 20.5, angle=90, bottom=True)
+text(f"REV {REVISION}  {DATE}", W - 5.6, 26.0, angle=90, bottom=True)
+text("JP1 1-2 5V  2-3 BOOST", W - 4.0, 26.0, angle=90, bottom=True)
 # top: only what stays visible with the modules plugged in
-text("JP1 1-2 5V  2-3 BOOST", 37.4, 21.0, angle=90)
+text("JP1 1-2 5V  2-3 BOOST", W - 1.2, 27.0, angle=90)
 
-for ref in ("J1", "J2", "J3", "J4", "PS1", "JP1", "C2"):
+for ref in ("J1", "J2", "J3", "J4", "J5", "PS1", "JP1", "C2"):
     fps[ref].Reference().SetVisible(False)
 
 # sensor socket bodies overhang the north edge: keep the stock silk (body
@@ -241,7 +250,7 @@ for ref in ("J1", "J2", "J3", "J4", "PS1", "JP1", "C2"):
 # lines crossing it are cut back to it.
 SILK_IN = 0.2                  # silk stays this far inside the edge
 cut = by(SILK_IN)
-for ref in ("J3", "J4"):
+for ref in ("J3", "J4", "J5"):
     for item in fps[ref].GraphicalItems():
         if item.GetLayer() != pcbnew.F_SilkS or item.GetClass() != "PCB_SHAPE":
             continue
@@ -295,12 +304,17 @@ v += box(ccx - 3.5, ccy - 3.5, SPACER + 1.0, ccx + 3.5, ccy + 3.5, SPACER + 5.0,
 v += box(bx0 + 2.0, by1 - 2.6, SPACER + 1.0, bx0 + 7.0, by1 - 0.4, SPACER + 3.2, (0.1, 0.1, 0.1))
 # sensors standing off the north edge, approximate outlines (measure the
 # real modules): male header plastic in the socket opening, PCB beyond it
-for ref, w, h, rgb in (("J3", 16.0, 22.0, (0.1, 0.35, 0.15)), ("J4", 17.0, 11.0, (0.4, 0.1, 0.5))):
-    xs = [pad_mm(ref, n)[0] for n in range(1, (5 if ref == "J3" else 6) + 1)]
+for ref, n_pins, w, h, rgb in (("J3", 5, 16.0, 22.0, (0.1, 0.35, 0.15)), ("J4", 6, 17.0, 11.0, (0.4, 0.1, 0.5)),
+                               ("J5", 3, PIR_DIA, PIR_DIA, (0.05, 0.05, 0.05))):
+    xs = [pad_mm(ref, n)[0] for n in range(1, n_pins + 1)]
     cx = (min(xs) + max(xs)) / 2
     v += box(min(xs) - 1.27, -1.0 - SPACER, 0.3, max(xs) + 1.27, -1.0, 2.8, (0.1, 0.1, 0.1))
     v += box(cx - w / 2, -1.0 - SPACER - 1.0, SENSOR_PIN_Z - 1.5, cx + w / 2, -1.0 - SPACER,
              SENSOR_PIN_Z - 1.5 + h, rgb, 0.15)
+# PIR lens dome in front of its round board
+pcx, py0 = pad_mm("J5", 2)[0], -1.0 - SPACER - 1.0
+v += box(pcx - PIR_LENS / 2, py0 - PIR_LENS, PIR_DIA / 2 - PIR_LENS / 2, pcx + PIR_LENS / 2, py0,
+         PIR_DIA / 2 + PIR_LENS / 2, (0.95, 0.95, 0.92), 0.1)
 os.makedirs(SHAPES, exist_ok=True)
 with open(os.path.join(SHAPES, "fit_modules.wrl"), "w", encoding="utf-8") as f:
     f.write("#VRML V2.0 utf8\n" + v)
