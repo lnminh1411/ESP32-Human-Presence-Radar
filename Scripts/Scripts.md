@@ -31,3 +31,4 @@ python export_gerbers.py
 - **render_board.py** (`Scripts\render_board.py`): F.Cu, B.Cu, top and bottom silkscreen and 3D views with board dimensions, into `pcb\build\renders\<board>\` (system Python, needs pymupdf + Pillow).
 - **export_gerbers.py** (`Scripts\export_gerbers.py`): Gerbers, PTH/NPTH drills with maps and the job file into `K:\artifacts\ESP32_Human_Presence_Radar_<board>_rev<REV>_gerbers\` plus a `.zip`. Clears the folder each run.
 
+- **bench.py** (`Scripts\bench.py`): builds, flashes, logs and sends console lines to the SuperMini, finding its COM port by USB serial (its MAC), never by VID, so it can't touch the main board. Run it with the ESP-IDF Python env: `C:/Espressif/python_env/idf5.5_py3.12_env/Scripts/python.exe Scripts/bench.py port|build <app>|flash <app>|log <s>|send "<line>"`. `build` clears `MSYSTEM` so ESP-IDF's export script works from Git Bash.
