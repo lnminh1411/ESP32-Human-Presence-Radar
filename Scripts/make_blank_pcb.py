@@ -16,7 +16,7 @@ the pcbnew module installed.)
 """
 import pcbnew
 import os
-from board_config import BOARD_PATH as OUT, REVISION, DATE, TITLE
+from board_config import BOARD_PATH as OUT, BOARD_TITLE as TITLE, REVISION, DATE
 
 os.makedirs(os.path.dirname(OUT), exist_ok=True)
 

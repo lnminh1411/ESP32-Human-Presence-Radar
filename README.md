@@ -11,11 +11,11 @@ This board is an add-on to the ESP32 PC Control System, the main project.
 
 ## About
 
-A small desk presence board: ESP32-S3 SuperMini, HLK LD2410C-P mmWave radar and VL53L1X time-of-flight sensor on one PCB.
+A small desk presence board: ESP32-S3 SuperMini on a fixed base, HLK LD2410C-P mmWave radar, SR602 PIR and VL53L1X time-of-flight sensor on a sensor head aimed by a two-servo pan-tilt.
 
 The webcam presence check in PcHwCtl fails in the dark (luma 0.1 in low-power mode reads `unknown/dark`) and its depth model can't tell 1.75 m from 2.0 m. Radar and ToF work without light and give a measured distance.
 
-Status: PCB rev 1.3 laid out and routed (46.6 x 36.5 mm, radar + ToF + PIR, DRC 0/0, Gerbers built, not ordered). No firmware yet.
+Status: PCB rev 2.0 laid out and routed as two boards joined by an FFC: base 32.0 x 42.0 mm (SuperMini, servos, beeper) and sensor head 46.6 x 21.0 mm (radar, PIR, ToF), DRC 0/0 on both, Gerbers built, not ordered. No firmware yet, bench tests in `docs/bringup.md`.
 
 ## Links
 

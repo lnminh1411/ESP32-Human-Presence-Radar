@@ -19,9 +19,9 @@ import subprocess
 import pymupdf
 from PIL import Image, ImageDraw, ImageFont
 
-from board_config import BOARD_PATH as BOARD, KICAD_CLI as KC, ROOT, SCRATCH_DIR
+from board_config import BOARD_PATH as BOARD, KICAD_CLI as KC, RENDER_DIR, ROOT, SCRATCH_DIR
 
-OUT = os.path.join(ROOT, "pcb", "build", "renders")
+OUT = RENDER_DIR
 TMP = os.path.join(SCRATCH_DIR, "pdf")
 
 ITEMS = [

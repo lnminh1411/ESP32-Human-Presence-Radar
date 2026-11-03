@@ -20,10 +20,12 @@ import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from board_config import ARTIFACTS_DIR, BOARD_PATH as BOARD, KICAD_CLI as KC, REVISION, TITLE  # noqa: E402
+from board_config import (ARTIFACTS_DIR, BOARD, BOARD_NAME, BOARD_PATH, KICAD_CLI as KC,  # noqa: E402
+                          REVISION, TITLE)
 
-OLD = "default"                                   # KiCad names outputs after the board file
-NAME = TITLE.replace(" ", "_")                    # ESP32_Human_Presence_Radar
+OLD = BOARD_NAME                                  # KiCad names outputs after the board file
+NAME = TITLE.replace(" ", "_") + "_" + BOARD       # ESP32_Human_Presence_Radar_base / _head
+BOARD = BOARD_PATH
 OUT = os.path.join(ARTIFACTS_DIR, f"{NAME}_rev{REVISION}_gerbers")
 LAYERS = "F.Cu,B.Cu,F.Paste,B.Paste,F.Silkscreen,B.Silkscreen,F.Mask,B.Mask,Edge.Cuts"
 

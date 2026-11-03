@@ -21,14 +21,13 @@ clearance violations until re-filled.
 """
 import subprocess
 import os
-from board_config import (BOARD_DIR, BOARD_PATH, FREEROUTING_JAR, POWER_NETS,
-                          POWER_TRACK_W, POWER_VIA_D, POWER_VIA_DRILL)
+from board_config import BOARD_DIR, BOARD_NAME, BOARD_PATH, FREEROUTING_JAR, NET_CLASSES
 import sys
 
 import pcbnew
 
-DSN_PATH = os.path.join(BOARD_DIR, "default.dsn")
-SES_PATH = os.path.join(BOARD_DIR, "default.ses")
+DSN_PATH = os.path.join(BOARD_DIR, BOARD_NAME + ".dsn")
+SES_PATH = os.path.join(BOARD_DIR, BOARD_NAME + ".ses")
 
 
 
@@ -39,14 +38,15 @@ def load_with_power_class():
     # applied here for the DSN export -- Freerouting then routes 5V/12V at
     # full width.
     ns = board.GetDesignSettings().m_NetSettings
-    nc = pcbnew.NETCLASS("Power")
-    nc.SetTrackWidth(pcbnew.FromMM(POWER_TRACK_W))
-    nc.SetClearance(pcbnew.FromMM(0.2))
-    nc.SetViaDiameter(pcbnew.FromMM(POWER_VIA_D))
-    nc.SetViaDrill(pcbnew.FromMM(POWER_VIA_DRILL))
-    ns.SetNetclass("Power", nc)
-    for net in POWER_NETS:
-        ns.SetNetclassPatternAssignment(net, "Power")
+    for name, (track, via_d, via_drill, nets) in NET_CLASSES.items():
+        nc = pcbnew.NETCLASS(name)
+        nc.SetTrackWidth(pcbnew.FromMM(track))
+        nc.SetClearance(pcbnew.FromMM(0.2))
+        nc.SetViaDiameter(pcbnew.FromMM(via_d))
+        nc.SetViaDrill(pcbnew.FromMM(via_drill))
+        ns.SetNetclass(name, nc)
+        for net in nets:
+            ns.SetNetclassPatternAssignment(net, name)
     board.SynchronizeNetsAndNetClasses(True)
     return board
 

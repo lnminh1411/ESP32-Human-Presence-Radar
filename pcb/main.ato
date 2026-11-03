@@ -1,37 +1,57 @@
 # ============================================================
-# ESP32 Human Presence Radar -- presence PCB (rev 1.3)
+# ESP32 Human Presence Radar -- presence PCBs (rev 2.0)
 # ============================================================
-# Houses: ESP32-S3 SuperMini (2x 1x9 vertical sockets), HLK LD2410C-P
-# 24 GHz radar and a VL53L1X ToF breakout (each on a right-angle socket),
-# an SR602 mini PIR (right-angle socket like the other two), an
-# optional 0.9-5V -> 5V boost module with a jumper that picks the radar's
-# supply, plus a 100uF + 100nF pair on the radar's 5V.
+# Two boards joined by a 12-pin 0.5 mm FFC:
+#   - Base (module Main, build "default"): fixed on the pan-tilt base.
+#     ESP32-S3 SuperMini (2x 1x9 vertical sockets), the two SG90 servo
+#     plugs, a second USB 5V input for the servos, and a PC-case piezo
+#     beeper driven through a PC817.
+#   - Sensor head (module Head, build "head"): rides on the two servos.
+#     HLK LD2410C-P radar, SR602 PIR and VL53L1X ToF on right-angle sockets
+#     at the north edge, all facing north, with the radar's 100uF + 100nF.
+# Only the light FFC moves with the head, so the servos never pull on a
+# USB cable.
 #
 # This file is the source of truth for the netlist. The firmware pin map is
 # to be checked against it by scripts/check_pins.py once firmware exists.
 #
-# Power: the board's only supply is the SuperMini's own USB-C, on a rear
-# panel USB 3.2 Gen 1 port (5V standby with ErP off). The SuperMini's 5V and 3V3
-# pins are outputs here: 5V feeds the radar (directly or through the
-# boost, picked by jumper jp1), 3V3 feeds the ToF. No second source exists
-# on the board, so there is no backfeed path and no diode on 5V.
+# Power, two USB cables, both on rear panel ports, grounds shared:
+#   - SuperMini USB-C (USB 3.2 Gen 1 port, 5V standby with ErP off): its
+#     5V and 3V3 pins are outputs here. 5V feeds the radar and the PIR, 3V3
+#     the ToF, both over the FFC.
+#   - Servo input (second USB, power only, a 6-pin USB-C under the
+#     SuperMini's own, both cables leaving the west edge): net servo_5v
+#     feeds both servos and the beeper, with a 100uF bulk cap. It never touches v5, so
+#     neither port can push current into the other, and servo and beep
+#     current stays off the sensors' supply.
 #
-# Pin mapping:
-#   - Radar on UART1 through the GPIO matrix: GPIO5 = MCU RX (radar TX),
-#     GPIO6 = MCU TX (radar RX), GPIO7 = radar OUT (high = presence).
-#     256000 baud 8N1. Radar IO is 3.3V even on a 5V supply. Pins 5-7 sit
-#     at the chip end of side B, so the three tracks reach the radar
-#     socket in its own pin order without crossing.
-#   - ToF on I2C: GPIO10 = SCL, GPIO11 = SDA, GPIO12 = GPIO1 (data-ready
-#     interrupt, open drain), GPIO13 = XSHUT (low = sensor off). The
-#     breakout carries the I2C and XSHUT pull-ups. GPIO13..10 sit straight
-#     under the ToF socket's XSHUT..SCL pins, so those four tracks run
-#     straight north.
-#   - PIR: GPIO8 = SR602 OUT (high = warm body moved, 3.3V push-pull).
-#     GPIO8 is the last pin of side A, right under the PIR's OUT pin.
+# FFC (base pin / head pin / net). A same-side (type A) cable between two
+# bottom-contact connectors maps base pin k to head pin 13-k. GND sits on
+# both ends and the two supplies on pins 2 and 11, so a cable of the other
+# type (k to k) lands GND on GND, swaps 5V and 3V3 and lands signals on
+# signals: nothing works, nothing gets 5V on a signal pin.
+#    1 / 12  gnd          7 / 6   tof_xshut
+#    2 / 11  v5           8 / 5   tof_int
+#    3 / 10  radar_out    9 / 4   tof_sda
+#    4 / 9   radar_rx    10 / 3   tof_scl
+#    5 / 8   radar_tx    11 / 2   v3v3
+#    6 / 7   pir_out     12 / 1   gnd
+# The order follows the sensors west to east on the head (radar, PIR,
+# ToF), so both boards route on F.Cu.
+#
+# Pin mapping (picked so the FFC fans straight into the SuperMini rows):
+#   - Radar on UART1 through the GPIO matrix: GPIO11 = MCU RX (radar TX),
+#     GPIO12 = MCU TX (radar RX), GPIO13 = radar OUT (high = presence).
+#     256000 baud 8N1. Radar IO is 3.3V even on a 5V supply.
+#   - PIR: GPIO10 = SR602 OUT (high = warm body moved, 3.3V push-pull).
+#   - ToF on I2C: GPIO6 = SCL, GPIO7 = SDA, GPIO8 = GPIO1 (data-ready
+#     interrupt, open drain), GPIO9 = XSHUT (low = sensor off). The
+#     breakout carries the I2C and XSHUT pull-ups.
+#   - Servos: GPIO1 = pan, GPIO2 = tilt (50 Hz LEDC, 500-2400 us).
+#   - Beeper: GPIO4 drives the PC817 LED (2-4 kHz square wave = tone).
 #   - Kept free: GPIO3 (strap), GPIO43/44 (UART0, ROM boot log), GPIO19/20
 #     (native USB, not on the headers), GPIO48 (onboard WS2812 + red LED).
-#     Spare: GPIO1, 2, 4, 9.
+#     Spare: GPIO5.
 #
 # Every component declares pins as `signal <name> ~ pin <N>`, not a bare
 # `pin <name>`: a named pin has no relation to a stock footprint's numbered
@@ -40,23 +60,81 @@
 # ---- passives ----------------------------------------------------------------
 
 component BulkCap100u:
-    """100uF / 25V electrolytic (10V minimum) on the radar's 5V, next to its socket. The
-    board runs from a rear USB port over a long cable and the LD2410 is
-    sensitive to supply ripple. Pad 1 (square) = +. Leads bent 90 degrees,
-    body lying flat (project footprint, 6.3 x 11 mm body)."""
+    """100uF / 25V electrolytic, standing, 6.3 x 11 mm. On the head: the
+    radar's 5V, next to its socket (the LD2410 is sensitive to supply
+    ripple and sits at the end of the FFC). On the base: servo_5v, for the
+    SG90 start-up spikes. Pad 1 (square) = +."""
     signal pos ~ pin 1
     signal neg ~ pin 2
-    footprint = "PresenceRadar:CP_Radial_D6.3mm_P2.50mm_Lying"
+    footprint = "Capacitor_THT:CP_Radial_D6.3mm_P2.50mm"
 
 component Cap100n:
-    """100nF ceramic beside the electrolytic, for the radar's high-frequency
+    """100nF ceramic disc (104, 50V) on the radar's 5V, for high-frequency
     supply noise."""
     signal p1 ~ pin 1
     signal p2 ~ pin 2
     footprint = "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm"
 
-# ---- module sockets ------------------------------------------------------------
-# Female sockets; every module plugs in on its own male DuPont pins.
+component Resistor:
+    """Axial 1/4 W resistor, standing (2.54 mm pitch)."""
+    signal p1 ~ pin 1
+    signal p2 ~ pin 2
+    footprint = "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P2.54mm_Vertical"
+
+component ResistorLying:
+    """Axial 1/4 W resistor lying flat, 7.62 mm pitch: the same pitch as the
+    beeper header's pins 1 and 4, so it bridges them as a rung."""
+    signal p1 ~ pin 1
+    signal p2 ~ pin 2
+    footprint = "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal"
+
+component ResistorSmd:
+    """0805 resistor. Only the USB-C CC pull-downs: no room under the
+    SuperMini for two more standing resistors."""
+    signal p1 ~ pin 1
+    signal p2 ~ pin 2
+    footprint = "Resistor_SMD:R_0805_2012Metric"
+
+component Diode1N4007:
+    """1N4007 across the beeper header, cathode (pin 1) to +5V, lying flat
+    at 7.62 mm like the 10k. Clamps the coil kick if a magnetic buzzer is
+    ever plugged in instead of the piezo."""
+    signal k ~ pin 1
+    signal a ~ pin 2
+    footprint = "Diode_THT:D_DO-41_SOD81_P7.62mm_Horizontal"
+
+component PC817:
+    """PC817 optocoupler, DIP-4: 1 = LED anode, 2 = LED cathode, 3 =
+    emitter, 4 = collector. Used as the beeper's switch (same ground on
+    both sides); its 50 mA output limit sets the beep current."""
+    signal anode ~ pin 1
+    signal cathode ~ pin 2
+    signal emitter ~ pin 3
+    signal collector ~ pin 4
+    footprint = "Package_DIP:DIP-4_W7.62mm"
+
+# ---- board-to-board -------------------------------------------------------------
+
+component Ffc12:
+    """12-pin 0.5 mm FFC connector, flip-lock, bottom contact, SMD (store
+    part, drawing scaled from the 20-pin size). Cable: 12-pin 0.5 mm, 101
+    mm (PS4 controller power-switch ribbon), ~0.5 A per conductor. The two
+    mounting tabs ("MP") carry no net."""
+    signal p1 ~ pin 1
+    signal p2 ~ pin 2
+    signal p3 ~ pin 3
+    signal p4 ~ pin 4
+    signal p5 ~ pin 5
+    signal p6 ~ pin 6
+    signal p7 ~ pin 7
+    signal p8 ~ pin 8
+    signal p9 ~ pin 9
+    signal p10 ~ pin 10
+    signal p11 ~ pin 11
+    signal p12 ~ pin 12
+    footprint = "PresenceRadar:FFC_P0.50mm_1x12_FlipLock_Bottom"
+
+# ---- base: module socket and headers ---------------------------------------------
 
 component Socket1x9:
     """One SuperMini header row, vertical. Pad 1 is the USB-C end."""
@@ -104,6 +182,44 @@ module SuperMiniSocket:
     signal gpio6   ~ b.pin8
     signal gpio7   ~ b.pin9
 
+component ServoHeader2x3:
+    """Both SG90 plugs on one 2x3 male header, one plug per 3-pin column,
+    standard order: signal (orange), +5V (red, middle), GND (brown). Pan on
+    pins 1-3-5, tilt on 2-4-6."""
+    signal pan_sig ~ pin 1
+    signal tilt_sig ~ pin 2
+    signal pan_vcc ~ pin 3
+    signal tilt_vcc ~ pin 4
+    signal pan_gnd ~ pin 5
+    signal tilt_gnd ~ pin 6
+    footprint = "Connector_PinHeader_2.54mm:PinHeader_2x03_P2.54mm_Vertical"
+
+component UsbC6P:
+    """Second USB 5V for the servos and the beeper: 6-pin power-only USB-C
+    receptacle (generic "Type-C 6P", 4 through-hole shell legs; stock GCT
+    USB4125 footprint, same pin layout). VBUS and GND each come out on two
+    pads, CC1/CC2 on the middle two. Each CC needs its own 5.1k pull-down,
+    or a USB-C source (C-to-C cable) never turns VBUS on; an A-to-C cable
+    gives 5V either way. The shell legs ("SH") go to GND."""
+    signal vbus ~ pin A9
+    signal vbus_b ~ pin B9
+    signal gnd ~ pin A12
+    signal gnd_b ~ pin B12
+    signal cc1 ~ pin A5
+    signal cc2 ~ pin B5
+    signal shield ~ pin SH
+    footprint = "Connector_USB:USB_C_Receptacle_GCT_USB4125-xx-x_6P_TopMnt_Horizontal"
+
+component SpeakerHeader:
+    """PC-case speaker plug, 1x4 male in the motherboard SPEAKER layout:
+    pin 1 = +5V, pin 4 = driven side; the plug has wires on 1 and 4 only,
+    so pins 2 and 3 stay unconnected. The user's speaker is a piezo."""
+    signal vcc ~ pin 1
+    signal drive ~ pin 4
+    footprint = "Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical"
+
+# ---- head: sensor sockets ---------------------------------------------------------
+
 component RadarSocket:
     """HLK LD2410C-P, 5 pins at 2.54 mm, right-angle socket. Pin order from
     Hi-Link's LD2410C manual (table 1): TX RX OUT GND VCC. The plain LD2410
@@ -115,33 +231,6 @@ component RadarSocket:
     signal gnd ~ pin 4
     signal vcc ~ pin 5
     footprint = "Connector_PinSocket_2.54mm:PinSocket_1x05_P2.54mm_Horizontal"
-
-component BoostSocket:
-    """0.9-5V -> 5V mini boost (10.4 x 11 mm, 22uH coil, SS14 output
-    diode, 150 kHz, up to 380-480 mA out above 3V in). Soldered under the
-    SuperMini on a 1x3 male header: long ends down through this board,
-    module on the short ends, about 7.5 mm tall in all. A socket would put
-    it at the SuperMini's own height. Pin order from the module's
-    silkscreen: V1 (in), GND (middle, unlabelled), Vo (out); the store
-    photo shows GND in the middle.
-    Fed from the SuperMini 5V pin: if that pin sits under 5V (a diode on
-    the SuperMini, cable drop) the boost lifts it to 5.0V; if it is already
-    at or above 5V the output is the input minus the SS14 drop (~4.7V), so
-    the boost only helps in the first case."""
-    signal vin  ~ pin 1
-    signal gnd  ~ pin 2
-    signal vout ~ pin 3
-    footprint = "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical"
-
-component SupplyJumper:
-    """1x3 pin header + jumper cap, picks the radar's 5V source: cap on 1-2
-    = SuperMini 5V direct, cap on 2-3 = boost output. The boost output only
-    reaches pin 3, so the boost can stay plugged in either way and never
-    fights the USB 5V rail."""
-    signal direct ~ pin 1
-    signal radar  ~ pin 2
-    signal boost  ~ pin 3
-    footprint = "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical"
 
 component TofSocket:
     """VL53L1X breakout, right-angle socket. GY-style 6-pin board,
@@ -164,82 +253,174 @@ component PirSocket:
     view: - + OUT, so facing north OUT is west. On a right-angle socket the
     pads count up westward, hence GND = 1, OUT = 3. Supply
     3.7-12V (listing; the photo says 4.5-20V); output is 3.3V digital,
-    hold 1-18 s. Fed from the radar's 5V, the only 5V net near it without
-    crossing the ToF tracks. Ignores room-temperature motion (fan blades),
-    so it vetoes radar motion that has no warm body behind it."""
+    hold 1-18 s. Ignores room-temperature motion (fan blades), so it
+    vetoes radar motion that has no warm body behind it."""
     signal gnd ~ pin 1
     signal vcc ~ pin 2
     signal out ~ pin 3
     footprint = "Connector_PinSocket_2.54mm:PinSocket_1x03_P2.54mm_Horizontal"
 
-# ---- top level -------------------------------------------------------------
+# ---- base board ---------------------------------------------------------------
 
 module Main:
     mcu = new SuperMiniSocket
-    radar = new RadarSocket
-    tof = new TofSocket
-    pir = new PirSocket
-    boost = new BoostSocket
-    jp1 = new SupplyJumper
-    c1 = new BulkCap100u  # radar 5V bulk
-    c2 = new Cap100n      # radar 5V HF
+    ffc = new Ffc12
+    servos = new ServoHeader2x3
+    servo_in = new UsbC6P
+    r_cc1 = new ResistorSmd  # 5.1k, CC1 pull-down
+    r_cc2 = new ResistorSmd  # 5.1k, CC2 pull-down
+    c1 = new BulkCap100u  # servo 5V bulk
+    spk = new SpeakerHeader
+    opto = new PC817
+    r_led = new Resistor  # 270R, opto LED
+    r_spk = new Resistor  # 33R, beeper series
+    r_dis = new ResistorLying  # 10k, piezo discharge
+    d1 = new Diode1N4007
 
     # ---- named nets ----
     # Without these, atopile names each net after a random member pin.
     signal gnd
-    signal v5         # SuperMini 5V pin
-    signal boost_out
-    signal radar_5v   # radar VCC, after the source jumper
-    signal v3v3
+    signal v5         # SuperMini 5V pin -> FFC -> radar, PIR
+    signal v3v3       # SuperMini 3V3 pin -> FFC -> ToF
+    signal servo_5v   # second USB, servos + beeper
     signal radar_tx   # radar TX -> MCU RX
     signal radar_rx   # MCU TX -> radar RX
     signal radar_out
+    signal pir_out
     signal tof_scl
     signal tof_sda
     signal tof_int
     signal tof_xshut
-    signal pir_out
+    signal servo_pan
+    signal servo_tilt
+    signal beep       # GPIO4 -> 270R
+    signal beep_led   # 270R -> opto LED
+    signal spk_drive  # speaker pin 4
+    signal opto_c     # opto collector -> 33R
     gnd ~ mcu.gnd
     v5 ~ mcu.vout_5v
-    boost_out ~ boost.vout
-    radar_5v ~ radar.vcc
     v3v3 ~ mcu.vout_3v3
+    servo_5v ~ servo_in.vbus
+    radar_tx ~ mcu.gpio11
+    radar_rx ~ mcu.gpio12
+    radar_out ~ mcu.gpio13
+    pir_out ~ mcu.gpio10
+    tof_scl ~ mcu.gpio6
+    tof_sda ~ mcu.gpio7
+    tof_int ~ mcu.gpio8
+    tof_xshut ~ mcu.gpio9
+    servo_pan ~ mcu.gpio1
+    servo_tilt ~ mcu.gpio2
+    beep ~ mcu.gpio4
+    beep_led ~ opto.anode
+    spk_drive ~ spk.drive
+    opto_c ~ opto.collector
+
+    # ---- FFC to the head (head pin = 13 - base pin) ----
+    gnd ~ ffc.p1
+    v5 ~ ffc.p2
+    radar_out ~ ffc.p3
+    radar_rx ~ ffc.p4
+    radar_tx ~ ffc.p5
+    pir_out ~ ffc.p6
+    tof_xshut ~ ffc.p7
+    tof_int ~ ffc.p8
+    tof_sda ~ ffc.p9
+    tof_scl ~ ffc.p10
+    v3v3 ~ ffc.p11
+    gnd ~ ffc.p12
+
+    # ---- power: USB 2 (servos, beeper) ----
+    gnd ~ servo_in.gnd
+    gnd ~ servo_in.gnd_b
+    gnd ~ servo_in.shield
+    servo_5v ~ servo_in.vbus_b
+    servo_in.cc1 ~ r_cc1.p1
+    r_cc1.p2 ~ gnd
+    servo_in.cc2 ~ r_cc2.p1
+    r_cc2.p2 ~ gnd
+    servo_5v ~ c1.pos
+    gnd ~ c1.neg
+    servo_5v ~ servos.pan_vcc
+    servo_5v ~ servos.tilt_vcc
+    gnd ~ servos.pan_gnd
+    gnd ~ servos.tilt_gnd
+
+    # ---- servos ----
+    servo_pan ~ servos.pan_sig
+    servo_tilt ~ servos.tilt_sig
+
+    # ---- beeper: GPIO4 -> 270R -> PC817 LED; collector -> 33R -> speaker ----
+    # LED current (3.3 - 1.2) / 270 = ~8 mA. The 10k across the speaker lets
+    # the piezo discharge between pulses; the 1N4007 clamps a coil's kick.
+    beep ~ r_led.p1
+    r_led.p2 ~ opto.anode
+    opto.cathode ~ gnd
+    opto.emitter ~ gnd
+    opto.collector ~ r_spk.p1
+    r_spk.p2 ~ spk.drive
+    servo_5v ~ spk.vcc
+    servo_5v ~ r_dis.p1
+    r_dis.p2 ~ spk.drive
+    servo_5v ~ d1.k
+    d1.a ~ spk.drive
+
+# ---- sensor head board ------------------------------------------------------------
+
+module Head:
+    radar = new RadarSocket
+    tof = new TofSocket
+    pir = new PirSocket
+    ffc = new Ffc12
+    c1 = new BulkCap100u  # radar 5V bulk
+    c2 = new Cap100n      # radar 5V HF
+
+    signal gnd
+    signal v5
+    signal v3v3
+    signal radar_tx
+    signal radar_rx
+    signal radar_out
+    signal pir_out
+    signal tof_scl
+    signal tof_sda
+    signal tof_int
+    signal tof_xshut
+
+    # ---- FFC from the base (head pin = 13 - base pin) ----
+    gnd ~ ffc.p12
+    v5 ~ ffc.p11
+    radar_out ~ ffc.p10
+    radar_rx ~ ffc.p9
+    radar_tx ~ ffc.p8
+    pir_out ~ ffc.p7
+    tof_xshut ~ ffc.p6
+    tof_int ~ ffc.p5
+    tof_sda ~ ffc.p4
+    tof_scl ~ ffc.p3
+    v3v3 ~ ffc.p2
+    gnd ~ ffc.p1
+
+    # ---- radar ----
+    v5 ~ radar.vcc
+    gnd ~ radar.gnd
     radar_tx ~ radar.tx
     radar_rx ~ radar.rx
     radar_out ~ radar.out
+    v5 ~ c1.pos
+    gnd ~ c1.neg
+    v5 ~ c2.p1
+    gnd ~ c2.p2
+
+    # ---- PIR ----
+    v5 ~ pir.vcc
+    gnd ~ pir.gnd
+    pir_out ~ pir.out
+
+    # ---- ToF ----
+    v3v3 ~ tof.vin
+    gnd ~ tof.gnd
     tof_scl ~ tof.scl
     tof_sda ~ tof.sda
     tof_int ~ tof.gpio1
     tof_xshut ~ tof.xshut
-    pir_out ~ pir.out
-
-    # ---- power ----
-    # radar supply: SuperMini 5V -> (jumper 1-2 direct | boost -> jumper 2-3)
-    mcu.vout_5v ~ boost.vin
-    mcu.gnd ~ boost.gnd
-    mcu.vout_5v ~ jp1.direct
-    boost.vout ~ jp1.boost
-    jp1.radar ~ radar.vcc
-    mcu.gnd ~ radar.gnd
-    jp1.radar ~ c1.pos
-    mcu.gnd ~ c1.neg
-    jp1.radar ~ c2.p1
-    mcu.gnd ~ c2.p2
-    mcu.vout_3v3 ~ tof.vin
-    mcu.gnd ~ tof.gnd
-
-    # ---- radar (UART1 via GPIO matrix) ----
-    mcu.gpio5 ~ radar.tx
-    mcu.gpio6 ~ radar.rx
-    mcu.gpio7 ~ radar.out
-
-    # ---- ToF (I2C) ----
-    mcu.gpio10 ~ tof.scl
-    mcu.gpio11 ~ tof.sda
-    mcu.gpio12 ~ tof.gpio1
-    mcu.gpio13 ~ tof.xshut
-
-    # ---- PIR ----
-    mcu.gpio8 ~ pir.out
-    jp1.radar ~ pir.vcc
-    mcu.gnd ~ pir.gnd

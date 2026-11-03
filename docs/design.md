@@ -8,9 +8,12 @@ Decisions made with the user on 2026-11-02, before any code or PCB. Each section
 - Radar: HLK LD2410C-P, 24 GHz FMCW. Reports moving and stationary targets with per-gate energy. The beam is about ±60° wide.
 - ToF: VL53L1X, up to 4 m in long mode in the dark. Its field of view is a 27° cone, so it must point straight at the target.
 - No thermal array (dropped 2026-11-02): an AMG8833 8x8 module was considered as a third presence signal, out to about 2 m. The 26k VND listing turned out to be a pricing error; the real price is about 697k VND. If it comes back, it fits on the ToF's I2C bus (0x68/0x69; ToF at 0x29), but the north edge has no room left, so the board would have to grow.
-- PIR: SR602 mini PIR (rev 1.3, 2026-11-03), on GPIO8, between the two other sensors. It reacts only to warm bodies moving, so it ignores the fan beside the chair, which the radar reads as motion. A PIR can't see someone sitting perfectly still; that stays with the radar's stationary energy and the ToF. Keep the fan from blowing on the PIR: moving air changes its window temperature and can trigger it. The bare RE200B element was ruled out: it needs an amplifier, a comparator and a lens.
+- PIR: SR602 mini PIR (rev 1.3, 2026-11-03), on GPIO10 since rev 2.0, between the two other sensors. It reacts only to warm bodies moving, so it ignores the fan beside the chair, which the radar reads as motion. A PIR can't see someone sitting perfectly still; that stays with the radar's stationary energy and the ToF. Keep the fan from blowing on the PIR: moving air changes its window temperature and can trigger it. The bare RE200B element was ruled out: it needs an amplifier, a comparator and a lens.
 - Presence rules for the firmware (decided 2026-11-03): desk presence needs the radar target at chair distance and the ToF reading in the chair band; radar motion counts only if the PIR fired in the last few seconds; the radar's maximum gate sits just past the chair; at night, act only on several seconds of agreement, and the camera vetoes anything consequential (waking the PC, intruder lock).
-- Own small PCB.
+- While the servos move, and until the readings settle after they stop, the head itself moves: ignore radar motion and PIR triggers then. The SR602 output holds for 1-18 s after a trigger, so the PIR stays blanked for its hold time after each move. Distances and gates are per aim: the chair band only applies with the head on the chair. Move one servo at a time (two stalled SG90s can pass the servo port's 900 mA).
+- Pan-tilt (rev 1.4, 2026-11-03): two SG90 servos aim the sensors over the whole room. The PCB is split in two: the base (SuperMini, servo plugs, a second USB-C for the servo power, under the SuperMini's own so both cables leave the same edge, piezo beeper) stays fixed, and only the sensor head (radar, PIR, ToF) moves, joined by a 12-pin 0.5 mm FFC. A moving whole board would pull on its two USB cables. Bench calibration of the room angles (0 = window, 90 = chair, 180 = bed) is in `docsringup.md`.
+- Beeper: a PC-case piezo speaker on the base, switched by a PC817 from GPIO4, powered from the servo 5V.
+- Own PCBs, details in `pcb\README.md`.
 
 ## Links
 
@@ -47,7 +50,7 @@ Position: the front face of the shelf above the desk, centred over the 27-inch m
 The board sits tilted down toward the chair. The seated user is about 45 to 60° below horizontal from the sensor.
 - The ToF's 27° cone misses a seated person completely if the board faces level or straight down. The tilt must aim it at the chest or head.
 - At 45 to 60° off its centre line the radar would sit at the edge of its beam and lose most of the stationary (breathing) signal. The same tilt fixes this.
-- One wedge bracket for the whole board covers both sensors.
+- Since rev 2.0 the tilt servo sets this angle; the base mounts flat.
 
 Other mounting rules:
 - The seated chest must be visible from the sensor over the top of the monitor. The radar can't see through the monitor's metal back or shelf brackets.
@@ -56,7 +59,8 @@ Other mounting rules:
 
 ## Open items
 
-- Bracket angle, measured on site.
+- Tilt angle for the chair, measured on site.
+- FFC cable type: the boards assume a same-side (type A) cable. Check with a meter before plugging in the sensors (`pcb\README.md`).
 - ESP-NOW frame format, stat key names on the main board.
 - USB transport to PcHwCtl (WinUSB vendor bulk with the GUID above is the plan) and its verbs.
 - Step 6 of the user's global CLAUDE.md still names the old architecture folder and three repos. The user chose to leave it unchanged for now (2026-11-02). The docs themselves moved to `E:\System Architecture Documentation\ESP32 PC Control System\` with this repo as repo D.

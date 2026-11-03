@@ -2,9 +2,14 @@
 Board-wide build settings and tool paths shared by the PCB scripts in this
 folder. Not run directly.
 
-The board is 2-layer: F.Cu carries the routing, B.Cu is a GND pour that
-signals may only cross with short via jumpers, power nets are routed
-Power-class tracks.
+Two boards, picked by the PCB_BOARD environment variable (default
+"base"): the base board (SuperMini, servos, beeper; atopile build and
+layout "default") and the sensor head (radar, ToF, PIR; build and layout
+"head"). They are joined by a 12-pin 0.5 mm FFC.
+
+Both are 2-layer: F.Cu carries the routing, B.Cu is a GND pour that
+signals may only cross with short jumpers, power nets are routed as
+net-class tracks.
 
 Tool and scratch paths default to the original Windows setup; override them
 with the environment variables named below on any other machine.
@@ -12,17 +17,31 @@ with the environment variables named below on any other machine.
 import os
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # repo root (worktree-safe)
-BOARD_DIR = os.path.join(ROOT, "pcb", "layouts", "default")
-BOARD_PATH = os.path.join(BOARD_DIR, "default.kicad_pcb")
+BOARD = os.environ.get("PCB_BOARD", "base")               # base | head
+BOARD_NAMES = {"base": "default", "head": "head"}           # atopile build = layout folder = file stem
+if BOARD not in BOARD_NAMES:
+    raise SystemExit(f"PCB_BOARD={BOARD!r}: use one of {sorted(BOARD_NAMES)}")
+BOARD_NAME = BOARD_NAMES[BOARD]
+BOARD_DIR = os.path.join(ROOT, "pcb", "layouts", BOARD_NAME)
+BOARD_PATH = os.path.join(BOARD_DIR, BOARD_NAME + ".kicad_pcb")
+NET_PATH = os.path.join(ROOT, "pcb", "build", BOARD_NAME + ".net")
+RENDER_DIR = os.path.join(ROOT, "pcb", "build", "renders", BOARD)
 
-REVISION = "1.3"
+REVISION = "2.0"
 DATE = "2026-11-03"
 TITLE = "ESP32 Human Presence Radar"
+BOARD_TITLE = {"base": TITLE + " - base", "head": TITLE + " - sensor head"}[BOARD]
 
-# Power nets (routed as tracks) -- net class "Power" in
-# pcb/layouts/default/default.kicad_pro sets their width
-POWER_NETS = ("v5", "radar_5v", "boost_out")  # v3v3 only feeds the ToF: Default class
-POWER_TRACK_W, POWER_VIA_D, POWER_VIA_DRILL = 0.4, 0.8, 0.4  # mm, keep = .kicad_pro; 0.4 fits between 2.54 mm header pads
+# Net classes routed wider than Default (0.2 mm): name -> (track, via
+# diameter, via drill, nets), in mm. Keep equal to both .kicad_pro files.
+# Power 0.3 mm fits between 2.54 mm header pads and onto the FFC's 0.3 mm
+# pads at 0.5 mm pitch; servo_5v carries both SG90s (over 1 A at stall) and
+# at 0.4 mm still passes between two SuperMini socket pins (0.84 mm gap).
+# v3v3 only feeds the ToF: Default class.
+NET_CLASSES = {
+    "Power": (0.3, 0.8, 0.4, ("v5",)),
+    "Servo": (0.4, 0.8, 0.4, ("servo_5v",)),
+}
 
 # ---- external tools / work folders ----
 KICAD_DIR = os.environ.get("KICAD_DIR", r"C:\Program Files\KiCad\10.0")

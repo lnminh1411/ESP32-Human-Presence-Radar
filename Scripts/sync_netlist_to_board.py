@@ -1,6 +1,6 @@
 """
-Sync atopile's exported KiCad-format netlist (pcb/build/default.net) onto
-the real KiCad board file (pcb/layouts/default/default.kicad_pcb), using
+Sync atopile's exported KiCad-format netlist (pcb/build/<build>.net) onto
+the board picked by PCB_BOARD (pcb/layouts/<build>/<build>.kicad_pcb), using
 only KiCad's own bundled pcbnew Python API -- no GUI automation, no
 xdotool/Docker/X11 (kicad_cli, the pierrechevalier83 tool, can't do this
 at all -- it only runs ERC/DRC on an already-existing project, it doesn't
@@ -36,15 +36,18 @@ the pcbnew module installed.)
 import re
 import pcbnew
 import os
-from board_config import BOARD_PATH, KICAD_FOOTPRINTS as FPBASE, ROOT
+from board_config import BOARD, BOARD_PATH, KICAD_FOOTPRINTS as FPBASE, NET_PATH, ROOT
 
-NET_PATH = os.path.join(ROOT, "pcb", "build", "default.net")
 # Board references come from the atopile INSTANCE name, not atopile's own
 # U1..Un numbering: that is pure declaration order, so adding or removing a
 # part would renumber every part after it (and every ref-keyed placement in
-# layout_board.py with it). Instance names only change when main.ato says so.
-REF_BY_INSTANCE = {"mcu.a": "J1", "mcu.b": "J2", "radar": "J3", "tof": "J4",
-                   "pir": "J5", "boost": "PS1", "jp1": "JP1", "c1": "C1", "c2": "C2"}
+# layout_<board>.py with it). Instance names only change when main.ato says so.
+REF_BY_INSTANCE = {
+    "base": {"mcu.a": "J1", "mcu.b": "J2", "ffc": "J3", "servos": "J4", "servo_in": "J5",
+             "spk": "J6", "c1": "C1", "opto": "U1", "r_led": "R1", "r_spk": "R2",
+             "r_dis": "R3", "r_cc1": "R4", "r_cc2": "R5", "d1": "D1"},
+    "head": {"radar": "J1", "tof": "J2", "pir": "J3", "ffc": "J4", "c1": "C1", "c2": "C2"},
+}[BOARD]
 LOCAL_LIBS = {"PresenceRadar": os.path.join(ROOT, "pcb", "footprints", "PresenceRadar.pretty")}
 
 
@@ -55,7 +58,11 @@ def board_ref(inst):
 
 
 # atopile 0.2 drops `value`, so part values are keyed off the instance name
-INSTANCE_VALUES = {"c1": "100u 25V", "c2": "100n"}
+INSTANCE_VALUES = {
+    "base": {"c1": "100u 25V", "opto": "PC817", "r_led": "270", "r_spk": "33", "r_dis": "10k",
+             "d1": "1N4007", "r_cc1": "5.1k", "r_cc2": "5.1k"},
+    "head": {"c1": "100u 25V", "c2": "100n"},
+}[BOARD]
 
 
 def parse_netlist(path):
@@ -190,12 +197,14 @@ def main():
             fp = placed_by_net_ref.get(ref)
             if fp is None:
                 continue
-            pad = fp.FindPadByNumber(pin)
-            if pad is None:
+            # every pad with that number: a USB-C shell has four "SH" legs
+            pads = [p for p in fp.Pads() if p.GetNumber() == pin]
+            if not pads:
                 print(f"  ! {ref} has no pad numbered {pin!r} (net {net_name})")
                 continue
-            pad.SetNet(netinfo)
-            pad_count += 1
+            for pad in pads:
+                pad.SetNet(netinfo)
+                pad_count += 1
 
     print(f"assigned {pad_count} pad-net links")
 
