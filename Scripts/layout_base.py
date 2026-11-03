@@ -26,7 +26,7 @@ Layout, rev 2.1 (board mm, origin = top-left, north = top):
     are joined by a short B.Cu bridge; servo_5v leaves between the TX and
     RX pins at 0.4 mm.
   - South strip: the servo plugs (J4, 2x3, signal pins east), the speaker
-    header (J6) with the 1N4007 and the 10k lying under it as rungs across
+    header (J6) with the 1N5819 and the 10k lying under it as rungs across
     its pins 1 and 4, and C1 on the servo 5V.
   - Mounting holes north-east and south-west.
 """
@@ -53,7 +53,7 @@ R1_PAD1 = (9.4, 22.75)          # 270R, pads run east; pad 1 (GPIO4 side) west
 U1_PIN1 = (15.7, 22.82)        # PC817 upright: pin 2 east of pin 1, pin 4 north of it
 J4_PIN1 = (8.6, 31.4)          # servos: pan row 1-3-5 west, tilt row 2-4-6 south of it
 J6_PIN1 = (22.22, 31.4)        # speaker, + east, drive (pin 4) west
-D1_K = (22.22, 34.9)           # 1N4007 lying, cathode east under J6 pin 1
+D1_K = (22.22, 34.9)           # 1N5819 lying, cathode east under J6 pin 1
 R3_PAD1 = (22.22, 38.6)        # 10k lying, under D1
 C1_PAD1 = (26.35, 33.4)        # 100u standing, + west
 HOLES = [(28.6, 3.4), (3.0, 39.0)]
@@ -198,8 +198,8 @@ text("33R", 12.2, 16.8)                                           # R2, top: bet
 text("33R", 10.67, 16.8, bottom=True)
 text("270R", 12.6, 21.45)                                         # R1
 text("270R", 10.67, 21.0, bottom=True)
-text("1N4007", 12.0, 34.9, angle=90)                              # D1, top: west of it
-text("1N4007", 18.4, 36.75, bottom=True)
+text("1N5819", 12.0, 34.9, angle=90)                              # D1, top: west of it
+text("1N5819", 18.4, 36.75, bottom=True)
 text("100uF 25V", 28.4, 29.0)                                     # C1
 text("USB-C  UPPER: MCU  LOWER: SERVO 5V", 0.7, MCY, angle=90, bottom=True)
 text("TO HEAD", FFC_CX, 1.6, bottom=True)

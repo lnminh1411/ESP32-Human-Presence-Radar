@@ -61,7 +61,7 @@ def board_ref(inst):
 # atopile 0.2 drops `value`, so part values are keyed off the instance name
 INSTANCE_VALUES = {
     "base": {"c1": "100u 25V", "opto": "PC817", "r_led": "270", "r_spk": "33", "r_dis": "10k",
-             "d1": "1N4007", "r_cc1": "5.1k", "r_cc2": "5.1k"},
+             "d1": "1N5819", "r_cc1": "5.1k", "r_cc2": "5.1k"},
     "head": {"c1": "100u 25V", "c2": "100n", "led1": "RED", "r_led": "270"},
 }[BOARD]
 

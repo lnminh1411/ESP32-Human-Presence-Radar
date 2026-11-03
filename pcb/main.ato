@@ -97,10 +97,12 @@ component ResistorSmd:
     signal p2 ~ pin 2
     footprint = "Resistor_SMD:R_0805_2012Metric"
 
-component Diode1N4007:
-    """1N4007 across the beeper header, cathode (pin 1) to +5V, lying flat
-    at 7.62 mm like the 10k. Clamps the coil kick if a magnetic buzzer is
-    ever plugged in instead of the piezo."""
+component Diode1N5819:
+    """1N5819 Schottky (40 V, 1 A, DO-41) across the beeper header, cathode
+    (pin 1) to +5V, lying flat at 7.62 mm like the 10k. Clamps the coil
+    kick if a magnetic buzzer is ever plugged in instead of the piezo; a
+    Schottky turns off fast at the 2-4 kHz tone and clamps at ~0.45 V.
+    A 1N4007 fits the same holes."""
     signal k ~ pin 1
     signal a ~ pin 2
     footprint = "Diode_THT:D_DO-41_SOD81_P7.62mm_Horizontal"
@@ -284,7 +286,7 @@ module Main:
     r_led = new Resistor  # 270R, opto LED
     r_spk = new Resistor  # 33R, beeper series
     r_dis = new ResistorLying  # 10k, piezo discharge
-    d1 = new Diode1N4007
+    d1 = new Diode1N5819
 
     # ---- named nets ----
     # Without these, atopile names each net after a random member pin.
@@ -363,7 +365,7 @@ module Main:
 
     # ---- beeper: GPIO4 -> 270R -> PC817 LED; collector -> 33R -> speaker ----
     # LED current (3.3 - 1.2) / 270 = ~8 mA. The 10k across the speaker lets
-    # the piezo discharge between pulses; the 1N4007 clamps a coil's kick.
+    # the piezo discharge between pulses; the 1N5819 clamps a coil's kick.
     beep ~ r_led.p1
     r_led.p2 ~ opto.anode
     opto.cathode ~ gnd

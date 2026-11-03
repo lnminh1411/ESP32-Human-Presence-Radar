@@ -61,7 +61,8 @@ the version key is `ato-version` (hyphenated).
 - 2.1 (2026-11-03): red indicator LED (D1, 3 mm, two holes) and its 270R
   (R1) on the head right behind the PIR, driven by GPIO5 over FFC base pin
   12 / head pin 1 (was the second GND). Head 46.6 x 25.0 mm (was 21.0) to
-  fit it.
+  fit it. D1 on the base is now a 1N5819 Schottky (was 1N4007, same DO-41
+  holes). Every part's value printed on the top silkscreen.
 
 ## Board-to-board FFC
 
@@ -124,7 +125,7 @@ head's radar VCC pin, and base pin 1 (GND) to the head's GND.
     track, the widest that fits between two socket pins).
 - South strip: the two servo plugs on a 2x3 header (J4, pan row north, tilt
   row south, signal pins at the east end), the speaker header (J6), the
-  1N4007 (D1) and the 10k (R3) lying flat as rungs across J6's pins 1 and 4
+  1N5819 (D1) and the 10k (R3) lying flat as rungs across J6's pins 1 and 4
   (both 7.62 mm pitch), and C1 on the servo 5V.
 - Routing: all F.Cu except J5's VBUS bridge; B.Cu is the GND pour. The
   tight spots are pre-drawn and locked by `layout_base.py` (the I2C pair,
@@ -134,7 +135,7 @@ head's radar VCC pin, and base pin 1 (GND) to the head's GND.
   the FFC's 0.3 mm pads; Servo (`servo_5v`) 0.4 mm; the rest 0.2 mm.
 - Mounting holes (M2.5): north-east corner and south-west corner.
 - Silkscreen: SuperMini pin labels on both sides, servo rows (TILT, PAN),
-  speaker + and DRV. Every part's value (270R, 33R, 5.1K, PC817, 1N4007,
+  speaker + and DRV. Every part's value (270R, 33R, 5.1K, PC817, 1N5819,
   10K, 100uF 25V) is printed next to it on top instead of its reference;
   the parts under the module repeat it on the bottom.
 
@@ -173,7 +174,7 @@ head's radar VCC pin, and base pin 1 (GND) to the head's GND.
 | PC-case piezo speaker | Base | J6, 1x4 male, motherboard SPEAKER layout | 1 = +5V (east), 4 = drive (west); 2, 3 unused |
 | PC817 (U1) | Base | DIP-4 | 1 anode, 2 cathode, 3 emitter, 4 collector |
 | R1 270R, R2 33R | Base | standing, 2.54 mm | |
-| R3 10k, D1 1N4007 | Base | lying, 7.62 mm | D1 cathode east (to +5V) |
+| R3 10k, D1 1N5819 | Base | lying, 7.62 mm | D1 cathode east (to +5V), band = cathode. Schottky 40 V 1 A; a 1N4007 also fits |
 | C1 (base) | Base | 100 uF / 25 V, 6.3 x 11 mm, standing | Servo 5V bulk, square pad = + |
 | HLK LD2410C-P | Head | 1x5 female, right-angle | TX RX OUT GND VCC (Hi-Link LD2410C manual, table 1) |
 | SR602 mini PIR (13.5 mm round board, 10 mm lens) | Head | 1x3 female, right-angle | Front view: - + OUT, so facing north OUT is west; pads GND 5V OUT, east to west. 3.7-12 V (listing; photo says 4.5-20 V); OUT 3.3 V digital, hold 1-18 s |
