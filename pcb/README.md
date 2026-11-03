@@ -107,8 +107,9 @@ head's radar VCC pin, and base pin 1 (GND) to the head's GND.
   end is a copper keepout on both layers.
 - North edge: FFC J3, cable leaving north. Its pins 3-8 fan straight down
   into GPIO13..8. The I2C pair (pins 9, 10) runs east above GPIO8, down
-  past the antenna keepout and back west under the south row to GPIO7/6;
-  the LED line (pin 12) runs the same way just outside it to GPIO5.
+  the east edge (clear of the module's pins, for soldering) and back west
+  under the south row to GPIO7/6; the LED line (pin 12) runs the same way
+  just outside it to GPIO5.
   5V runs under the north row and up between the 3V3 and GPIO13 pins; 3V3
   runs under the connector body to pin 11.
 - Under the SuperMini, all under 11 mm (the module's underside):
@@ -136,8 +137,11 @@ head's radar VCC pin, and base pin 1 (GND) to the head's GND.
 - Mounting holes (M2.5): north-east corner and south-west corner.
 - Silkscreen: SuperMini pin labels on both sides, servo rows (TILT, PAN),
   speaker + and DRV. Every part's value (270R, 33R, 5.1K, PC817, 1N5819,
-  10K, 100uF 25V) is printed next to it on top instead of its reference;
-  the parts under the module repeat it on the bottom.
+  10K, 100uF 25V) is printed on top instead of its reference, inside the
+  body outline where there is one (PC817, 1N5819, 10K), next to it
+  otherwise; the parts under the module repeat it on the bottom. The
+  PC817 outline has no notch: like the PC Controller board, a dot marks
+  the pin-1 corner, matching the moulded dot on the part.
 
 ![Base, top silkscreen over F.Cu](../docs/images/pcb_base_silkscreen_top.png)
 

@@ -15,8 +15,8 @@ Layout, rev 2.1 (board mm, origin = top-left, north = top):
     (side A: 5V GND 3V3 13..8) is the north row (user-checked 2026-11-02).
   - North edge: the FFC connector (J3), cable leaving north toward the
     head. Its pins 3-8 fan straight down into GPIO13..8; pins 9-10 (I2C)
-    run around the module's chip end to GPIO6/7, pin 12 (head LED) outside
-    them to GPIO5; 5V comes up between the
+    run along the east edge, clear of the module's pins, to GPIO6/7, pin 12
+    (head LED) outside them to GPIO5; 5V comes up between the
     3V3 and GPIO13 pins, 3V3 runs under the connector body to pin 11.
   - Under the SuperMini, between its rows: the servo power USB-C (J5),
     mouth flush with the west edge right under the SuperMini's own USB-C,
@@ -53,6 +53,7 @@ R1_PAD1 = (9.4, 22.75)          # 270R, pads run east; pad 1 (GPIO4 side) west
 U1_PIN1 = (15.7, 22.82)        # PC817 upright: pin 2 east of pin 1, pin 4 north of it
 J4_PIN1 = (8.6, 31.4)          # servos: pan row 1-3-5 west, tilt row 2-4-6 south of it
 J6_PIN1 = (22.22, 31.4)        # speaker, + east, drive (pin 4) west
+EAST_X = (29.4, 30.0, 30.6)    # SDA, SCL, LED runs down the east edge
 D1_K = (22.22, 34.9)           # 1N5819 lying, cathode east under J6 pin 1
 R3_PAD1 = (22.22, 38.6)        # 10k lying, under D1
 C1_PAD1 = (26.35, 33.4)        # 100u standing, + west
@@ -66,18 +67,19 @@ if pad_mm("J3", 12)[0] < pad_mm("J3", 1)[0] or courtyard(fps["J3"])[1] > FFC_Y -
     raise SystemExit("J3: pin 1 must be west with the body north")
 stitch_pad("J3", 1, -0.8, 0)                 # FFC ground pad (1, west end): via past the row
 # Pre-routes Freerouting boxed in or necked to 0.15 mm. I2C (FFC 9 SDA,
-# 10 SCL) leaves the fan-out first, runs east above GPIO8, down past the
-# antenna keepout and back west under the south row: SCL outside, so it
+# 10 SCL) leaves the fan-out first, runs east above GPIO8, down the east
+# edge (clear of the module's pins for soldering) and back west under the
+# south row: SCL outside, so it
 # lands on GPIO6, SDA on GPIO7. INT (FFC 8) drops below the I2C pair
 # before turning to GPIO8. 5V runs under the north row and up between the
 # 3V3 and GPIO13 pins. The head LED (FFC 12) runs outside the I2C pair
 # to GPIO5.
-route_path("J3", 12, [(FFC_CX + 2.75, 6.5), (26.8, 6.5), (26.8, ROW_S + 2.2),
+route_path("J3", 12, [(FFC_CX + 2.75, 6.5), (EAST_X[2], 6.5), (EAST_X[2], ROW_S + 2.2),
                       (pad_mm("J2", 7)[0] + 0.7, ROW_S + 2.2), (pad_mm("J2", 7)[0], ROW_S + 1.5),
                       pad_mm("J2", 7)])
-route_path("J3", 9, [(FFC_CX + 1.25, 7.0), (FFC_CX + 2.05, 7.8), (25.6, 7.8), (25.6, ROW_S),
+route_path("J3", 9, [(FFC_CX + 1.25, 7.0), (FFC_CX + 2.05, 7.8), (EAST_X[0], 7.8), (EAST_X[0], ROW_S),
                      pad_mm("J2", 9)])
-route_path("J3", 10, [(FFC_CX + 1.75, 6.6), (FFC_CX + 2.35, 7.2), (26.2, 7.2), (26.2, ROW_S + 1.46),
+route_path("J3", 10, [(FFC_CX + 1.75, 6.6), (FFC_CX + 2.35, 7.2), (EAST_X[1], 7.2), (EAST_X[1], ROW_S + 1.46),
                       (20.6, ROW_S + 1.46), (pad_mm("J2", 8)[0], ROW_S + 0.74), pad_mm("J2", 8)])
 route_path("J3", 8, [(FFC_CX + 0.75, 8.4), (20.0, 8.4), (pad_mm("J1", 9)[0], ROW_N - 0.68),
                      pad_mm("J1", 9)])
@@ -189,6 +191,34 @@ text("PRESENCE RADAR BASE", 14.0, 40.7, bottom=True)
 text(f"REV {REVISION}  {DATE}", FFC_CX, 8.7, bottom=True)
 # part values, both sides: top for assembly, bottom readable once the module covers the top
 U1_MX = (pad_mm("U1", 1)[0] + pad_mm("U1", 2)[0]) / 2
+# PC817: the fitted part marks pin 1 with a moulded dot, not a notch (same
+# as the PC Controller board) -> stock outline to F.Fab, plain box + dot in
+# the pin-1 corner on the silkscreen, placed dot-to-dot.
+x0 = y0 = 1e9
+x1 = y1 = -1e9
+for g in fps["U1"].GraphicalItems():
+    if g.GetLayer() == pcbnew.F_SilkS and isinstance(g, pcbnew.PCB_SHAPE):
+        bb = g.GetBoundingBox()
+        x0, x1 = min(x0, bb.GetLeft()), max(x1, bb.GetRight())
+        y0, y1 = min(y0, bb.GetTop()), max(y1, bb.GetBottom())
+        g.SetLayer(pcbnew.F_Fab)
+inset = MM(0.06)                             # bbox includes half the 0.12 line
+rect = pcbnew.PCB_SHAPE(board, pcbnew.SHAPE_T_RECT)
+rect.SetLayer(pcbnew.F_SilkS)
+rect.SetStart(pcbnew.VECTOR2I(x0 + inset, y0 + inset))
+rect.SetEnd(pcbnew.VECTOR2I(x1 - inset, y1 - inset))
+rect.SetWidth(MM(0.12))
+board.Add(rect)
+p1 = pad(fps["U1"], "1").GetPosition()
+cx = x0 + MM(0.65) if p1.x - x0 < x1 - p1.x else x1 - MM(0.65)
+cy = y0 + MM(0.65) if p1.y - y0 < y1 - p1.y else y1 - MM(0.65)
+dot = pcbnew.PCB_SHAPE(board, pcbnew.SHAPE_T_CIRCLE)
+dot.SetLayer(pcbnew.F_SilkS)
+dot.SetCenter(pcbnew.VECTOR2I(int(cx), int(cy)))
+dot.SetEnd(pcbnew.VECTOR2I(int(cx) + MM(0.35), int(cy)))
+dot.SetFilled(True)
+dot.SetWidth(MM(0.1))
+board.Add(dot)
 for bottom in (False, True):
     text("PC817", U1_MX, MCY, angle=90, bottom=bottom)            # U1, inside its outline
     text("10K", 18.4, 38.6, bottom=bottom)                        # R3
@@ -198,7 +228,7 @@ text("33R", 12.2, 16.8)                                           # R2, top: bet
 text("33R", 10.67, 16.8, bottom=True)
 text("270R", 12.6, 21.45)                                         # R1
 text("270R", 10.67, 21.0, bottom=True)
-text("1N5819", 12.0, 34.9, angle=90)                              # D1, top: west of it
+text("1N5819", 17.85, D1_K[1], width=0.62)                       # D1, inside its body
 text("1N5819", 18.4, 36.75, bottom=True)
 text("100uF 25V", 28.4, 29.0)                                     # C1
 text("USB-C  UPPER: MCU  LOWER: SERVO 5V", 0.7, MCY, angle=90, bottom=True)

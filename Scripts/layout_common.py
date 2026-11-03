@@ -166,12 +166,13 @@ LEFT, RIGHT, CENTER = (pcbnew.GR_TEXT_H_ALIGN_LEFT, pcbnew.GR_TEXT_H_ALIGN_RIGHT
                        pcbnew.GR_TEXT_H_ALIGN_CENTER)
 
 
-def text(s, x, y, hjust=CENTER, size=0.8, angle=0, bottom=False):
-    """x, y in board mm; bottom=True prints mirrored on B.SilkS"""
+def text(s, x, y, hjust=CENTER, size=0.8, angle=0, bottom=False, width=None):
+    """x, y in board mm; bottom=True prints mirrored on B.SilkS; `width`
+    narrows the glyphs (height stays `size`) to fit inside a body outline"""
     t = pcbnew.PCB_TEXT(board)
     t.SetText(s)
     t.SetLayer(pcbnew.B_SilkS if bottom else pcbnew.F_SilkS)
-    t.SetTextSize(pcbnew.VECTOR2I(MM(size), MM(size)))
+    t.SetTextSize(pcbnew.VECTOR2I(MM(width or size), MM(size)))
     t.SetTextThickness(MM(0.15 * size))
     t.SetHorizJustify(hjust)
     t.SetTextAngle(pcbnew.EDA_ANGLE(angle, pcbnew.DEGREES_T))
