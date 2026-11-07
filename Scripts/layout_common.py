@@ -60,8 +60,8 @@ def place_run(ref, x, y, dx, dy, second=2):
 
 
 def courtyard(fp):
-    """placed courtyard box in board mm: (x0, y0, x1, y1)"""
-    b = fp.GetCourtyard(pcbnew.F_CrtYd).BBox()
+    """placed courtyard box in board mm: (x0, y0, x1, y1), on the part's side"""
+    b = fp.GetCourtyard(pcbnew.B_CrtYd if fp.IsFlipped() else pcbnew.F_CrtYd).BBox()
     return (b.GetLeft() / 1e6 - OX, b.GetTop() / 1e6 - OY,
             b.GetRight() / 1e6 - OX, b.GetBottom() / 1e6 - OY)
 
@@ -114,6 +114,8 @@ def check_courtyards(w, h, overhang):
     for i, r in enumerate(refs):
         for s in refs[i + 1:]:
             a, b = boxes[r], boxes[s]
+            if fps[r].IsFlipped() != fps[s].IsFlipped():
+                continue                          # opposite sides never collide
             if a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]:
                 print(f"  ! courtyards overlap: {r} and {s}")
     return boxes

@@ -9,15 +9,16 @@ Run on a fresh board, after make_blank_pcb.py and sync_netlist_to_board.py:
 
 Not idempotent: rebuild from make_blank_pcb.py after any change here.
 
-Layout, rev 2.1 (board mm, origin = top-left, north = top):
+Layout, rev 2.2 (board mm, origin = top-left, north = top):
   - SuperMini turned sideways: rows run east-west, USB-C at the west edge,
     chip/antenna end east. Face up with the USB-C pointing west, its 5V row
     (side A: 5V GND 3V3 13..8) is the north row (user-checked 2026-11-02).
   - North edge: the FFC connector (J3), cable leaving north toward the
-    head. Its pins 3-8 fan straight down into GPIO13..8; pins 9-10 (I2C)
-    run along the east edge, clear of the module's pins, to GPIO6/7, pin 12
-    (head LED) outside them to GPIO5; 5V comes up between the
-    3V3 and GPIO13 pins, 3V3 runs under the connector body to pin 11.
+    head. Its pins 3-8 fan straight down into GPIO13..8 (pin 7, the LDR,
+    on GPIO9 = ADC1); pins 9-12 (ToF INT, SDA, SCL, head LED) run along
+    the east edge, clear of the module's pins, and back west under the
+    south row to GPIO7..4; 5V comes up between the 3V3 and GPIO13 pins,
+    3V3 runs over the connector body to pin 13.
   - Under the SuperMini, between its rows: the servo power USB-C (J5),
     mouth flush with the west edge right under the SuperMini's own USB-C,
     so both cables leave the same edge; its 5.1k CC pull-downs (R4, R5,
@@ -43,7 +44,7 @@ MCU_USB_X = 0.5                # module's USB-C end
 MCU_PIN1_X = MCU_USB_X + 1.6   # pin 1 (5V / TX); pins run east at 2.54
 MCU_LEN, MCU_WIDTH = 23.5, 18.0
 
-FFC_CX, FFC_Y = 16.6, 5.4      # FFC centre, pad row; body (5.2 deep) ends 0.2 inside the north edge
+FFC_CX, FFC_Y = 17.1, 5.4      # FFC centre, pad row; body (5.2 deep) ends 0.2 inside the north edge
 MCY = (ROW_N + ROW_S) / 2      # module centre line
 J5_AT = (3.4, MCY)             # USB-C origin: its "PCB edge" line (3.4 mm in front) on the west edge
 VIA_X = 7.7                    # VBUS bridge vias, just behind J5's pads
@@ -53,7 +54,8 @@ R1_PAD1 = (9.4, 22.75)          # 270R, pads run east; pad 1 (GPIO4 side) west
 U1_PIN1 = (15.7, 22.82)        # PC817 upright: pin 2 east of pin 1, pin 4 north of it
 J4_PIN1 = (8.6, 31.4)          # servos: pan row 1-3-5 west, tilt row 2-4-6 south of it
 J6_PIN1 = (22.22, 31.4)        # speaker, + east, drive (pin 4) west
-EAST_X = (29.4, 30.0, 30.6)    # SDA, SCL, LED runs down the east edge
+EAST_X = (28.8, 29.4, 30.0, 30.6)   # FFC 9-12 (INT, SDA, SCL, LED) runs down the east edge
+TURN_Y = (7.9, 7.45, 7.0, 6.55)     # where each of them leaves its FFC pad eastward
 D1_K = (22.22, 34.9)           # 1N5819 lying, cathode east under J6 pin 1
 R3_PAD1 = (22.22, 38.6)        # 10k lying, under D1
 C1_PAD1 = (26.35, 33.4)        # 100u standing, + west
@@ -62,33 +64,40 @@ HOLES = [(28.6, 3.4), (3.0, 39.0)]
 # ---- placement ----------------------------------------------------------------
 place_run("J1", MCU_PIN1_X, ROW_N, 1, 0)     # side A: 5V GND 3V3 13..8
 place_run("J2", MCU_PIN1_X, ROW_S, 1, 0)     # side B: TX RX 1..7
-place_pad1("J3", FFC_CX - 2.75, FFC_Y, 0)
-if pad_mm("J3", 12)[0] < pad_mm("J3", 1)[0] or courtyard(fps["J3"])[1] > FFC_Y - 5:
+place_pad1("J3", FFC_CX - 3.25, FFC_Y, 0)
+if pad_mm("J3", 14)[0] < pad_mm("J3", 1)[0] or courtyard(fps["J3"])[1] > FFC_Y - 5:
     raise SystemExit("J3: pin 1 must be west with the body north")
-stitch_pad("J3", 1, -0.8, 0)                 # FFC ground pad (1, west end): via past the row
-# Pre-routes Freerouting boxed in or necked to 0.15 mm. I2C (FFC 9 SDA,
-# 10 SCL) leaves the fan-out first, runs east above GPIO8, down the east
-# edge (clear of the module's pins for soldering) and back west under the
-# south row: SCL outside, so it
-# lands on GPIO6, SDA on GPIO7. INT (FFC 8) drops below the I2C pair
+stitch_pad("J3", 1, -0.8, 0)                 # FFC ground pads: via past each end of the row
+stitch_pad("J3", 14, 0.8, 0)
+
+
+def ffc_x(n):
+    return pad_mm("J3", n)[0]
+
+
+# Pre-routes Freerouting boxed in or necked to 0.15 mm. FFC 9-12 (INT, SDA,
+# SCL, LED) leave the fan-out first, each dropping from its pad and turning
+# east (the further east the pad, the closer to the pads it turns), run down
+# the east edge (clear of the module's pins for soldering) and back west
+# under the south row, nested: INT innermost onto GPIO7, then SDA GPIO6,
+# SCL GPIO5, LED outermost onto GPIO4. XSHUT (FFC 8) drops below them
 # before turning to GPIO8. 5V runs under the north row and up between the
-# 3V3 and GPIO13 pins. The head LED (FFC 12) runs outside the I2C pair
-# to GPIO5.
-route_path("J3", 12, [(FFC_CX + 2.75, 6.5), (EAST_X[2], 6.5), (EAST_X[2], ROW_S + 2.2),
-                      (pad_mm("J2", 7)[0] + 0.7, ROW_S + 2.2), (pad_mm("J2", 7)[0], ROW_S + 1.5),
-                      pad_mm("J2", 7)])
-route_path("J3", 9, [(FFC_CX + 1.25, 7.0), (FFC_CX + 2.05, 7.8), (EAST_X[0], 7.8), (EAST_X[0], ROW_S),
-                     pad_mm("J2", 9)])
-route_path("J3", 10, [(FFC_CX + 1.75, 6.6), (FFC_CX + 2.35, 7.2), (EAST_X[1], 7.2), (EAST_X[1], ROW_S + 1.46),
-                      (20.6, ROW_S + 1.46), (pad_mm("J2", 8)[0], ROW_S + 0.74), pad_mm("J2", 8)])
-route_path("J3", 8, [(FFC_CX + 0.75, 8.4), (20.0, 8.4), (pad_mm("J1", 9)[0], ROW_N - 0.68),
+# 3V3 and GPIO13 pins.
+SOUTH = [(pad_mm("J2", 9), 0.0), (pad_mm("J2", 8), 1.46), (pad_mm("J2", 7), 2.2),
+         (pad_mm("J2", 6), 2.94)]            # (target pad, run depth below the south row)
+for i, (n, (target, dy)) in enumerate(zip((9, 10, 11, 12), SOUTH)):
+    pts = [(ffc_x(n), TURN_Y[i]), (EAST_X[i], TURN_Y[i]), (EAST_X[i], ROW_S + dy)]
+    if dy:
+        pts += [(target[0] + 0.7, ROW_S + dy), (target[0], ROW_S + dy - 0.7)]
+    route_path("J3", n, pts + [target])
+route_path("J3", 8, [(ffc_x(8), 8.4), (20.0, 8.4), (pad_mm("J1", 9)[0], ROW_N - 0.68),
                      pad_mm("J1", 9)])
-# PIR (FFC 6) and XSHUT (FFC 7) fan out under the INT track the same way.
-route_path("J3", 6, [(FFC_CX - 0.25, 9.6), (pad_mm("J1", 7)[0], 10.59), pad_mm("J1", 7)])
-route_path("J3", 7, [(FFC_CX + 0.25, 9.0), (pad_mm("J1", 8)[0] - 0.3, 9.0),
+# PIR (FFC 6) and the LDR (FFC 7) fan out under the XSHUT track the same way.
+route_path("J3", 6, [(ffc_x(6), 9.6), (pad_mm("J1", 7)[0], 10.59), pad_mm("J1", 7)])
+route_path("J3", 7, [(ffc_x(7), 9.0), (pad_mm("J1", 8)[0] - 0.3, 9.0),
                      (pad_mm("J1", 8)[0], 9.3), pad_mm("J1", 8)])
 route_path("J1", 1, [(3.5, 12.9), (8.45, 12.9), (8.45, 9.6),
-                     (11.05, 7.0), (FFC_CX - 2.75, 7.0), (FFC_CX - 2.25, 6.5), (FFC_CX - 2.25, FFC_Y)],
+                     (11.05, 7.0), (ffc_x(1), 7.0), (ffc_x(2), 6.5), (ffc_x(2), FFC_Y)],
            width=0.3)
 # ---- servo power USB-C under the module ----
 j5 = fps["J5"]

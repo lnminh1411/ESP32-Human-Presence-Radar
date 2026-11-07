@@ -1,6 +1,6 @@
-# Presence PCBs (atopile + KiCad), rev 2.1
+# Presence PCBs (atopile + KiCad), rev 2.2
 
-Two boards joined by a 12-pin 0.5 mm FFC:
+Two boards joined by a 14-pin 0.5 mm FFC:
 
 - **Base** (32.0 x 42.0 mm, module `Main`, build `default`): fixed on the
   pan-tilt base. ESP32-S3 SuperMini, the two SG90 servo plugs, a second USB-C
@@ -8,8 +8,10 @@ Two boards joined by a 12-pin 0.5 mm FFC:
   PC817.
 - **Sensor head** (46.6 x 25.0 mm, module `Head`, build `head`): rides on
   the two servos. HLK LD2410C-P radar, SR602 PIR and VL53L1X ToF on
-  right-angle sockets at the north edge, all facing north, and a red
-  indicator LED behind the PIR that the firmware drives.
+  right-angle sockets at the north edge, all facing north, a red
+  indicator LED behind the PIR that the firmware drives, and a GL5528 LDR
+  under the north edge, facing north with the sensors so the pan-tilt can
+  aim it.
 
 Only the light FFC moves with the head, so the servos never pull on a USB
 cable. [`main.ato`](main.ato) is the single-file atopile project and the
@@ -20,9 +22,9 @@ since rev 2.0). The boards are `layouts/default/default.kicad_pcb` (base) and
 `layouts/head/head.kicad_pcb`, built, placed and routed by the scripts in
 [`../Scripts/`](../Scripts/Scripts.md).
 
-![Base, rev 2.1, with a fit model of the SuperMini](../docs/images/pcb_base_3d.png)
+![Base, rev 2.2, with a fit model of the SuperMini](../docs/images/pcb_base_3d.png)
 
-![Sensor head, rev 2.1, with fit models of the three sensors](../docs/images/pcb_head_3d.png)
+![Sensor head, rev 2.2, with fit models of the three sensors](../docs/images/pcb_head_3d.png)
 
 ## Build
 
@@ -63,37 +65,45 @@ the version key is `ato-version` (hyphenated).
   12 / head pin 1 (was the second GND). Head 46.6 x 25.0 mm (was 21.0) to
   fit it. D1 on the base is now a 1N5819 Schottky (was 1N4007, same DO-41
   holes). Every part's value printed on the top silkscreen.
+- 2.2 (2026-11-07): GL5528 LDR on the head (R3, with a 10k R2 and 100 nF
+  C3 in 0805) facing north, to measure room light and, aimed by the
+  pan-tilt, tell window light from the room lamp. FFC goes to 14 pins: the
+  LDR line, and GND back on both ends so a wrong-type cable is harmless
+  again. GPIOs remapped so the FFC still fans straight in: LDR GPIO9
+  (ADC1), XSHUT GPIO8, INT GPIO7, SDA GPIO6, SCL GPIO5, LED GPIO4, beeper
+  GPIO3.
 
 ## Board-to-board FFC
 
-Cable: 12-pin, 0.5 mm pitch, 101 mm (a PS4 controller power-switch ribbon),
-about 0.5 A per conductor. Connectors (J3 on the base, J4 on the head):
-12-pin 0.5 mm flip-lock, bottom contact, surface mount. The footprint is
-drawn from the store's 20-pin drawing scaled to 12 pins (pads 0.30 x 1.3
-mm, mounting tabs 2.0 x 2.5 mm), so check it against the real part before
-ordering. The two tabs carry no net; each end GND pad has a via to the
-B.Cu pour beside it.
+Cable: 14-pin, 0.5 mm pitch (a PS4 controller power-switch ribbon), about
+0.5 A per conductor. Connectors (J3 on the base, J4 on the head): 14-pin
+0.5 mm flip-lock, bottom contact, surface mount. The footprint is drawn
+from the store's 20-pin drawing scaled to 14 pins (pads 0.30 x 1.3 mm,
+mounting tabs 2.0 x 2.5 mm, body 12.9 mm wide), so check it against the
+real part before ordering. The two tabs carry no net; each end GND pad has
+a via to the B.Cu pour beside it.
 
 A same-side (type A) cable between the two bottom-contact connectors maps
-base pin k to head pin 13 - k. The base cable leaves north, the head cable
+base pin k to head pin 15 - k. The base cable leaves north, the head cable
 leaves south; lay the cable flat between them without a twist or a crease.
 
 | Base pin | Head pin | Net | Base pin | Head pin | Net |
 |---|---|---|---|---|---|
-| 1 | 12 | `gnd` | 7 | 6 | `tof_xshut` |
-| 2 | 11 | `v5` | 8 | 5 | `tof_int` |
-| 3 | 10 | `radar_out` | 9 | 4 | `tof_sda` |
-| 4 | 9 | `radar_rx` | 10 | 3 | `tof_scl` |
-| 5 | 8 | `radar_tx` | 11 | 2 | `v3v3` |
-| 6 | 7 | `pir_out` | 12 | 1 | `led` |
+| 1 | 14 | `gnd` | 8 | 7 | `tof_xshut` |
+| 2 | 13 | `v5` | 9 | 6 | `tof_int` |
+| 3 | 12 | `radar_out` | 10 | 5 | `tof_sda` |
+| 4 | 11 | `radar_rx` | 11 | 4 | `tof_scl` |
+| 5 | 10 | `radar_tx` | 12 | 3 | `led` |
+| 6 | 9 | `pir_out` | 13 | 2 | `v3v3` |
+| 7 | 8 | `ldr` | 14 | 1 | `gnd` |
 
-The order follows the sensors west to east on the head (radar, PIR, ToF),
-so both boards route on F.Cu. The two supplies sit on pins 2 and 11. Since
-rev 2.1 only base pin 1 is GND; base pin 12 carries the LED. A cable of the
-other type (k to k) swaps 5V and 3V3 and grounds the head only through
-GPIO5, so it is no longer harmless. Before plugging in the sensors, check
-with a meter: base J3 pin 2 (or the SuperMini 5V pin) must beep to the
-head's radar VCC pin, and base pin 1 (GND) to the head's GND.
+The order follows the head west to east (radar, PIR, LDR, ToF, LED last),
+so both boards route on F.Cu. GND sits on both ends and the two supplies
+on pins 2 and 13: a cable of the other type (k to k) lands GND on GND,
+swaps 5V and 3V3 and lands signals on signals, so nothing works but
+nothing gets 5V on a signal pin. Before plugging in the sensors, check with
+a meter: base J3 pin 2 (or the SuperMini 5V pin) must beep to the head's
+radar VCC pin.
 
 ## Base board
 
@@ -106,12 +116,11 @@ head's radar VCC pin, and base pin 1 (GND) to the head's GND.
   the near row (user-checked 2026-11-02). The last 4.8 mm at the antenna
   end is a copper keepout on both layers.
 - North edge: FFC J3, cable leaving north. Its pins 3-8 fan straight down
-  into GPIO13..8. The I2C pair (pins 9, 10) runs east above GPIO8, down
-  the east edge (clear of the module's pins, for soldering) and back west
-  under the south row to GPIO7/6; the LED line (pin 12) runs the same way
-  just outside it to GPIO5.
-  5V runs under the north row and up between the 3V3 and GPIO13 pins; 3V3
-  runs under the connector body to pin 11.
+  into GPIO13..8 (the LDR, pin 7, on GPIO9, an ADC1 pin). Pins 9-12 (ToF
+  INT, SDA, SCL, head LED) run east above GPIO8, down the east edge (clear
+  of the module's pins, for soldering) and back west under the south row,
+  nested, to GPIO7..4. 5V runs under the north row and up between the 3V3
+  and GPIO13 pins; 3V3 runs over the connector body to pin 13.
 - Under the SuperMini, all under 11 mm (the module's underside):
   - J5, the servo-power USB-C, mouth flush with the west edge right under
     the SuperMini's own USB-C (the receptacle is about 3.2 mm tall, the
@@ -129,8 +138,9 @@ head's radar VCC pin, and base pin 1 (GND) to the head's GND.
   1N5819 (D1) and the 10k (R3) lying flat as rungs across J6's pins 1 and 4
   (both 7.62 mm pitch), and C1 on the servo 5V.
 - Routing: all F.Cu except J5's VBUS bridge; B.Cu is the GND pour. The
-  tight spots are pre-drawn and locked by `layout_base.py` (the I2C pair,
-  ToF INT, PIR and XSHUT fan-out, 5V, J5's CC, GND and VBUS stubs),
+  tight spots are pre-drawn and locked by `layout_base.py` (the four
+  east-edge runs, the PIR, LDR and XSHUT fan-out, 5V, J5's CC, GND and
+  VBUS stubs),
   because Freerouting boxed tracks in or necked them to 0.15 mm. Net
   classes: Power (`v5`) 0.3 mm, so it fits between 2.54 mm pads and onto
   the FFC's 0.3 mm pads; Servo (`servo_5v`) 0.4 mm; the rest 0.2 mm.
@@ -157,10 +167,21 @@ head's radar VCC pin, and base pin 1 (GND) to the head's GND.
   the north side of the radar pins, and the FFC's 5V pin reaches it over
   one short B.Cu hop.
 - Silkscreen: sensor pin labels on both sides; each part's value (RED,
-  270R, 100uF 25V, 100nF) next to it instead of its reference.
+  270R, 100uF 25V, 100nF, GL5528) next to it instead of its reference; the
+  LDR's 10K and 100nF on the bottom, under the parts (no room on top).
 - Right behind the PIR: the red LED D1 (anode west, cathode to the GND
-  pour) and its 270R R1 standing west of it. The LED line leaves FFC pin 1
+  pour) and its 270R R1 standing west of it. The LED line leaves FFC pin 3
   (east end), runs south under the connector body and comes up to R1.
+- North edge, between the PIR and ToF sockets: the GL5528 LDR (R3) is
+  fitted from the bottom, its holes one behind the other (the 2.9 mm gap
+  between the socket courtyards is too narrow for them side by side). Bend
+  both leads 90 degrees so it sits under the board facing north past the
+  edge, the south lead 2.5 mm further back. A ~10 mm black tube (heat
+  shrink) over it narrows its view to about 30 degrees, so the pan-tilt can
+  aim it. 3V3 reaches it from the ToF's VIN along the north side of the ToF
+  pins. Below it, on top: R2 10k and C3 100 nF (0805), their GND pads
+  facing each other over one via; the LDR line runs straight down to FFC
+  pin 8.
 - South-west: C1 (100 uF) and C2 (100 nF, pads north-south) on the
   radar's 5V. Mounting holes in both south corners.
 
@@ -171,7 +192,7 @@ head's radar VCC pin, and base pin 1 (GND) to the head's GND.
 | Part | Board | Mount | Pin order |
 |---|---|---|---|
 | ESP32-S3 SuperMini | Base | 2x 1x9 female, vertical, rows 15.24 mm (0.6 in) apart, measured | Side A, USB-C end first: 5V GND 3V3 13 12 11 10 9 8. Side B: TX RX 1 2 3 4 5 6 7 |
-| FFC connector x2 | Both | 12-pin 0.5 mm flip-lock, bottom contact, SMD | Pin 1 west on the base, east on the head |
+| FFC connector x2 | Both | 14-pin 0.5 mm flip-lock, bottom contact, SMD | Pin 1 west on the base, east on the head |
 | SG90 servos x2 | Base | J4, 2x3 male; one plug per row | S + - (orange, red, brown); signal pins at the west end |
 | Servo 5V in (J5) | Base | 6-pin power-only USB-C receptacle ("Type-C 6P", 4 through-hole shell legs), stock GCT USB4125 footprint: check the legs against the real part | VBUS x2, GND x2, CC1, CC2; shell legs to GND |
 | R4, R5 | Base | 5.1k 0805, behind J5 | CC1, CC2 pull-downs to GND. Without them a USB-C source (C-to-C cable) keeps VBUS off; an A-to-C cable gives 5V either way. Two 10k in parallel (5k) also work |
@@ -186,15 +207,17 @@ head's radar VCC pin, and base pin 1 (GND) to the head's GND.
 | C1 (head) | Head | 100 uF / 25 V, 6.3 x 11 mm, standing. Chosen 2026-11-03: Linh kiện NtShop "Tụ hóa 25V" pack, 100uF/25V x20 | Radar 5V bulk, square pad = + |
 | C2 (head) | Head | 100 nF ceramic disc, marked "104", 50 V, 5 mm pitch. Chosen 2026-11-03: "Combo 10 Tụ Gốm 104 100nF 50V" | Radar 5V, high frequency |
 | D1 (head) | Head | Red LED, 3 or 5 mm, 2.54 mm leads, standing | Pad 1 (square) = cathode, flat side, short lead |
-| R1 (head) | Head | 270R, standing, 2.54 mm | GPIO5 side south; (3.3 - 1.9) / 270 = about 5 mA |
+| R1 (head) | Head | 270R, standing, 2.54 mm | GPIO4 side south; (3.3 - 1.9) / 270 = about 5 mA |
+| R3 GL5528 LDR (head) | Head | 5 mm, from the bottom, leads bent 90 degrees to face north | Pad 1 (north) = 3V3, pad 2 = LDR line. About 10-20k at 10 lux, 1M dark, peak 540 nm |
+| R2 10k, C3 100 nF (head) | Head | 0805, under the LDR | LDR divider to GND and line filter: ~1.6 V at 10 lux, ~2.6 V at 100 lux |
 
-The LED's 270R is the head's only resistor: the ToF breakout carries its
-own I2C and XSHUT pull-ups, and the radar's UART and OUT are 3.3 V
-push-pull. Check the ToF
-pin order against the silkscreen on the real part before soldering.
+Apart from the LDR divider the head has no resistors besides the LED's:
+the ToF breakout carries its own I2C and XSHUT pull-ups, and the radar's
+UART and OUT are 3.3 V push-pull. Check the ToF pin order against the
+silkscreen on the real part before soldering.
 
-The FFC connectors, J5's six pads and R4/R5 are the only surface-mount
-parts. The FFC is 0.5 mm pitch: solder it with flux and a fine tip (drag,
+The FFC connectors, J5's six pads, R4/R5 and the head's R2/C3 are the only
+surface-mount parts. The FFC is 0.5 mm pitch: solder it with flux and a fine tip (drag,
 then wick bridges), or have the fab place those parts. Solder J5 and R4/R5
 before the SuperMini's sockets.
 
@@ -207,19 +230,28 @@ layout scripts, not measured parts.
 |---|---|---|
 | 1 | `servo_pan` | Pan servo, 50 Hz LEDC, 500-2400 us |
 | 2 | `servo_tilt` | Tilt servo |
-| 4 | `beep` | PC817 LED through 270R; a 2-4 kHz square wave = tone |
-| 5 | `led` | Head red LED, high = on (about 5 mA) |
-| 6 | `tof_scl` | I2C SCL |
-| 7 | `tof_sda` | I2C SDA |
-| 8 | `tof_int` | ToF GPIO1, data-ready interrupt (open drain) |
-| 9 | `tof_xshut` | ToF XSHUT, low = sensor off |
+| 3 | `beep` | PC817 LED through 270R; a 2-4 kHz square wave = tone |
+| 4 | `led` | Head red LED, high = on (about 5 mA) |
+| 5 | `tof_scl` | I2C SCL |
+| 6 | `tof_sda` | I2C SDA |
+| 7 | `tof_int` | ToF GPIO1, data-ready interrupt (open drain) |
+| 8 | `tof_xshut` | ToF XSHUT, low = sensor off |
+| 9 | `ldr` | LDR, ADC1_CH8; brighter = higher. ADC1 works with Wi-Fi/ESP-NOW on |
 | 10 | `pir_out` | PIR OUT, high = warm body moved (3.3 V push-pull) |
 | 11 | `radar_tx` | MCU RX from radar TX (UART1, 256000 8N1) |
 | 12 | `radar_rx` | MCU TX to radar RX |
 | 13 | `radar_out` | Radar OUT, high = presence |
 
-Kept free: GPIO3 (strap), GPIO43/44 (UART0 boot log), GPIO48 (onboard
-WS2812 and red LED). No spare GPIO left on the headers.
+GPIO3 is a strap pin only when an eFuse picks the JTAG source (not set by
+default), so the beeper's 270R + opto LED on it is harmless at boot. Kept
+free: GPIO43/44 (UART0 boot log), GPIO48 (onboard WS2812 and red LED). No
+spare GPIO left on the headers.
+
+The LDR is slow (tens of ms to settle, up to about 1 s from dark), so read
+it after the same post-move wait as the radar and PIR. Paired with the
+ToF's ambient rate (940 nm IR, which LED lamps barely emit), it tells
+daylight from lamp light: LDR high + ambient high = daylight, LDR high +
+ambient near zero = lamp.
 
 ## Power
 
@@ -246,7 +278,7 @@ lower C1 to 47 uF or add a soft-start; a diode does not fix inrush.
 
 ## Beeper
 
-GPIO4 -> R1 270R -> PC817 LED (about 8 mA); the PC817's transistor pulls
+GPIO3 -> R1 270R -> PC817 LED (about 8 mA); the PC817's transistor pulls
 the speaker's drive pin to GND through R2 33R, with the speaker's other pin
 on `servo_5v`. The PC817's 50 mA output limit sets the beep current. R3 10k
 across the speaker lets the piezo discharge between pulses; D1 clamps the

@@ -47,7 +47,7 @@ REF_BY_INSTANCE = {
              "spk": "J6", "c1": "C1", "opto": "U1", "r_led": "R1", "r_spk": "R2",
              "r_dis": "R3", "r_cc1": "R4", "r_cc2": "R5", "d1": "D1"},
     "head": {"radar": "J1", "tof": "J2", "pir": "J3", "ffc": "J4", "c1": "C1", "c2": "C2",
-             "led1": "D1", "r_led": "R1"},
+             "led1": "D1", "r_led": "R1", "r_ldr": "R2", "ldr1": "R3", "c3": "C3"},
 }[BOARD]
 LOCAL_LIBS = {"PresenceRadar": os.path.join(ROOT, "pcb", "footprints", "PresenceRadar.pretty")}
 
@@ -62,7 +62,8 @@ def board_ref(inst):
 INSTANCE_VALUES = {
     "base": {"c1": "100u 25V", "opto": "PC817", "r_led": "270", "r_spk": "33", "r_dis": "10k",
              "d1": "1N5819", "r_cc1": "5.1k", "r_cc2": "5.1k"},
-    "head": {"c1": "100u 25V", "c2": "100n", "led1": "RED", "r_led": "270"},
+    "head": {"c1": "100u 25V", "c2": "100n", "led1": "RED", "r_led": "270", "r_ldr": "10k", "ldr1": "GL5528",
+             "c3": "100n"},
 }[BOARD]
 
 
