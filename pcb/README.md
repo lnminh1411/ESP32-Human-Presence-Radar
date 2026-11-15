@@ -257,16 +257,26 @@ ambient near zero = lamp.
 
 Two USB cables, both on rear panel ports, grounds shared:
 
-- SuperMini USB-C, on a USB 3.2 Gen 1 port (900 mA; the SuperMini is a
-  USB 2.0 device and uses that port's USB 2.0 lines). Its 5V and 3V3 pins
-  are outputs: 5V feeds the radar and the PIR, 3V3 the ToF, both over the
-  FFC.
-- Servo USB-C (J5, second USB, power only): net `servo_5v` feeds both
-  servos and the beeper, with C1 on the base. It never touches `v5`, so
-  neither port can push current into the other, and servo and beep
-  current stays off the sensors' supply. An SG90 draws up to about 650 mA
-  stalled, so moving both at once can pass a port's 900 mA: move one servo
-  at a time.
+- SuperMini USB-C, on a rear USB 2.0 port (500 mA; the SuperMini is a USB
+  2.0 full-speed device). Its 5V and 3V3 pins are outputs: 5V feeds the
+  radar and the PIR, 3V3 the ToF, both over the FFC. Estimated draw about
+  200 mA average and about 470 mA peak (ESP32 transmit bursts about
+  340 mA, radar about 100 mA, the rest about 25 mA), from datasheets, not
+  measured yet. Lowering the Wi-Fi transmit power (the main board runs
+  8 dBm) cuts the ESP32's peak to about 200 mA.
+- Servo USB-C (J5, second USB, power only), on a rear USB 3.2 Gen 1 port
+  (900 mA): net `servo_5v` feeds both servos and the beeper, with C1 on
+  the base. It never touches `v5`, so neither port can push current into
+  the other, and servo and beep current stays off the sensors' supply. An
+  SG90 draws up to about 650 mA stalled, so moving both at once can pass
+  the port's 900 mA: move one servo at a time, ramp each move, stop the
+  pulses when it ends, and never drive into the end stops.
+
+Use ports on different fuse groups where possible: motherboard ports often
+share one polyfuse per pair, which would see both cables together.
+
+These two ports replace the rev 1.3-2.2 plan of the SuperMini on the USB
+3.2 Gen 1 port (decided 2026-11-15).
 
 No diode on 5V: with one source per rail there is nothing to backfeed. A
 Schottky in series would put the radar under Hi-Link's 5 V minimum.

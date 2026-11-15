@@ -36,15 +36,31 @@ Status: working. Signal (yellow) on the header pin labelled 8, red on the SuperM
 
 Test app `supermini_servo`: LEDC low-speed channel 0 on GPIO8, 50 Hz, 14-bit duty. It boots at 1500 us (centre) and takes console lines over USB-Serial-JTAG: `u <us>` (raw pulse, clamped to 400..2600), `a <deg>` (room angle, see below), `s` (sweep 500 to 2400 and back in 10 us steps every 20 ms), and `off` (no pulses). Send lines with `Scripts\bench.py send`.
 
-Room angles, confirmed by the user with an arrow on the horn (2026-11-03):
+Servo 1 is the pan axis. The user confirmed these room angles with an arrow on the horn and 5 s holds (2026-11-03, after remounting the arrow):
 
-| Angle | Points at | Pulse |
+| Pan angle | Points at | Pulse |
 |---|---|---|
-| 0 | Window | 2400 us |
-| 90 | Chair, square to the desk | 1450 us |
-| 180 | Bed | 500 us |
+| 0 | Window | 2474 us |
+| 90 | Chair, square to the desk | 1524 us |
+| 180 | Bed | 574 us |
 
-The SG90 turns opposite to the room frame: a longer pulse turns toward the window. The app maps `a <deg>` as `2400 - deg * 1900 / 180` us. The user set the arrow on the horn at 90 degrees (1450 us), so the 90 degree mark depends on that mounting.
+The SG90 turns opposite to the room frame: a longer pulse turns toward the window, so pan pulse = `2474 - deg * 1900 / 180` us. The first calibration put 90 degrees at 1450 us. Remounting the arrow moved it to 1524 us, so the 90 degree pulse belongs to the horn and arrow mounting, not to the servo. The test app's `a <deg>` still uses the old `2400 - deg * 1900 / 180` mapping, so send `u <us>` for calibrated moves.
+
+Servo 2 (the second SG90, same wiring) points square to the chair at 1556 us, the app's `a 80`. Its trim comes from the horn sitting on a different spline tooth. Firmware driving both servos needs a 90 degree pulse per servo: pan 1524 us, tilt 1556 us.
+
+Servo 2 is the tilt axis. The user confirmed these tilt angles with 5 s holds, with no buzzing at the ends:
+
+| Tilt angle | Points at | Pulse |
+|---|---|---|
+| 0 | Ceiling, straight up | 2506 us |
+| 45 | Half way up | 2031 us |
+| 90 | Chair, level | 1556 us |
+| 135 | Half way down | 1081 us |
+| 180 | Floor, straight down | 606 us |
+
+Like the pan servo, a longer pulse means a lower angle: tilt pulse = `2506 - deg * 1900 / 180` us. Both servos keep the same 10.56 us per degree; they differ only in their 90 degree pulse.
+
+Out-of-range pulses: when sent 2600 us and then 400 us, servo 2 did not move at all and held its last position (90 degrees). Then 2031 us moved it again. Its controller treats those widths as invalid, not as a command to drive to the stop. The accepted window covers at least 606 to 2506 us; the exact edges weren't probed. Firmware should clamp each servo to its calibrated end pulses (pan 574 to 2474 us, tilt 606 to 2506 us), because a wider pulse is silently ignored. The SG90 is a 180 degree positional servo, so 360 degree pan isn't possible. It isn't needed either, since tilting past vertical points the head backward.
 
 Results:
 - Steps to 45, 90, 135 and 90 degrees (975, 1450, 1925, 1450 us) and the full 500 to 2400 us sweep all moved the servo as commanded, with no buzzing at the ends.
