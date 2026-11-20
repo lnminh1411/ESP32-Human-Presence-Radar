@@ -145,8 +145,9 @@ radar VCC pin.
   classes: Power (`v5`) 0.3 mm, so it fits between 2.54 mm pads and onto
   the FFC's 0.3 mm pads; Servo (`servo_5v`) 0.4 mm; the rest 0.2 mm.
 - Mounting holes (M2.5): north-east corner and south-west corner.
-- Silkscreen: SuperMini pin labels on both sides, servo rows (TILT, PAN),
-  speaker + and DRV. Every part's value (270R, 33R, 5.1K, PC817, 1N5819,
+- Silkscreen: SuperMini pin labels on both sides, servo rows (TILT, PAN)
+  with a `- + S` column legend under the header (top only; added
+  2026-11-20 so a servo plug can't go in reversed), speaker + and DRV. Every part's value (270R, 33R, 5.1K, PC817, 1N5819,
   10K, 100uF 25V) is printed on top instead of its reference, inside the
   body outline where there is one (PC817, 1N5819, 10K), next to it
   otherwise; the parts under the module repeat it on the bottom. The
@@ -193,7 +194,7 @@ radar VCC pin.
 |---|---|---|---|
 | ESP32-S3 SuperMini | Base | 2x 1x9 female, vertical, rows 15.24 mm (0.6 in) apart, measured | Side A, USB-C end first: 5V GND 3V3 13 12 11 10 9 8. Side B: TX RX 1 2 3 4 5 6 7 |
 | FFC connector x2 | Both | 14-pin 0.5 mm flip-lock, bottom contact, SMD | Pin 1 west on the base, east on the head |
-| SG90 servos x2 | Base | J4, 2x3 male; one plug per row | S + - (orange, red, brown); signal pins at the west end |
+| SG90 servos x2 | Base | J4, 2x3 male; one plug per row | S + - (orange, red, brown); signal pins at the east end, marked `- + S` on the top silkscreen under the header |
 | Servo 5V in (J5) | Base | 6-pin power-only USB-C receptacle ("Type-C 6P", 4 through-hole shell legs), stock GCT USB4125 footprint: check the legs against the real part | VBUS x2, GND x2, CC1, CC2; shell legs to GND |
 | R4, R5 | Base | 5.1k 0805, behind J5 | CC1, CC2 pull-downs to GND. Without them a USB-C source (C-to-C cable) keeps VBUS off; an A-to-C cable gives 5V either way. Two 10k in parallel (5k) also work |
 | PC-case piezo speaker | Base | J6, 1x4 male, motherboard SPEAKER layout | 1 = +5V (east), 4 = drive (west); 2, 3 unused |

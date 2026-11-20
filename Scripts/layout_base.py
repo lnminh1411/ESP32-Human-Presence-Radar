@@ -190,7 +190,13 @@ labels("J2", J2_NAMES, -2.05, False)
 labels("J6", ["+", "", "", "DRV"], -2.3, False)
 for bottom in (False, True):
     text("PAN", pad_mm("J4", 3)[0], 29.3, bottom=bottom)
-    text("TILT", pad_mm("J4", 4)[0], 36.0, bottom=bottom)
+    text("TILT", pad_mm("J4", 4)[0], 37.2, bottom=bottom)
+# servo plug polarity per column (S = orange signal, east), one legend for
+# both rows under the J4 outline; top only (the plugs go in from the top).
+# No room above the pan row: J2's outline sits 2 mm over J4's.
+for num, name in enumerate(J4_NAMES, start=1):
+    if num % 2 == 0:
+        text(name, pad_mm("J4", num)[0], 35.95)
 
 # bottom: the same, readable once the module covers the top
 labels("J1", J1_NAMES, 1.7, True)
